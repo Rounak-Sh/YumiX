@@ -1,10 +1,103 @@
-import React from "react";
+import React, { useState, useEffect } from "react";
 import { HeartIcon } from "@heroicons/react/24/solid";
 import { HeartIcon as HeartOutlineIcon } from "@heroicons/react/24/outline";
 import { useFavorites } from "../context/FavoritesContext";
 import { useAuth } from "../context/AuthContext";
 import { showToast } from "../utils/toast";
 import { extractRecipeId } from "../utils/recipeUtils";
+import { useNavigate } from "react-router-dom";
+
+/**
+ * Get a YouTube thumbnail URL for a recipe
+ * @param {string} recipeName - The name of the recipe
+ * @returns {string} - YouTube thumbnail URL
+ */
+const getYouTubeThumbnail = (recipeName) => {
+  // Clean the recipe name for YouTube search
+  const searchQuery = recipeName.replace(/recipe|spoonacular/gi, "").trim();
+
+  // If no valid search term, use a food-related thumbnail
+  if (!searchQuery || searchQuery.length < 3) {
+    // Reliable food video thumbnails from YouTube
+    const defaultThumbnails = [
+      "https://img.youtube.com/vi/TGYKLtQ7vXI/mqdefault.jpg", // Cooking tutorial
+      "https://img.youtube.com/vi/v2Zbs8H_Q6M/mqdefault.jpg", // Food video
+      "https://img.youtube.com/vi/QSoZ7-CsR_g/mqdefault.jpg", // Recipe video
+      "https://img.youtube.com/vi/zDnTZt0H4ow/mqdefault.jpg", // Food plating
+      "https://img.youtube.com/vi/SQHeTbJkqkw/mqdefault.jpg", // Dessert making
+    ];
+
+    // Get a consistent thumbnail based on the recipe name's length
+    const index = recipeName.length % defaultThumbnails.length;
+    return defaultThumbnails[index];
+  }
+
+  // YouTube's video ID for common food searches - these IDs are stable and reliable
+  const foodVideoIds = {
+    cake: "jADHtfRVP6c",
+    chocolate: "XoNIsoqT5s0",
+    cookies: "RxiG-_ANMjU",
+    pasta: "6rTi-XA7bLI",
+    chicken: "TGYKLtQ7vXI",
+    beef: "x_ZRiGTcTFM",
+    pizza: "sv3TXMSv6Lw",
+    salad: "NMt9dh9FJzE",
+    fish: "O0WLcA-Qhks",
+    vegetable: "Z2nIGQT-Qd4",
+    dessert: "SQHeTbJkqkw",
+    breakfast: "v2Zbs8H_Q6M",
+    bread: "lipLMAz2HQ4",
+    soup: "dHTy_yQ_wQ0",
+    fruit: "1_YABPeBZZM",
+    cheese: "QaHQlrBIXuQ",
+    vegan: "7CxIplM279U",
+    baking: "w4-YdT-24C8",
+  };
+
+  // Check if the recipe name contains any of our keywords
+  for (const [keyword, videoId] of Object.entries(foodVideoIds)) {
+    if (searchQuery.toLowerCase().includes(keyword)) {
+      return `https://img.youtube.com/vi/${videoId}/mqdefault.jpg`;
+    }
+  }
+
+  // Default reliable food thumbnail if no match
+  return "https://img.youtube.com/vi/TGYKLtQ7vXI/mqdefault.jpg";
+};
+
+// Utility function to check if Spoonacular image URL has proper format
+function isValidSpoonacularId(id) {
+  return id && /^\d+$/.test(id);
+}
+
+/**
+ * Get the image URL for a recipe, with fallbacks for different scenarios
+ * @param {Object} recipe - Recipe object containing image info
+ * @returns {string} - URL for the recipe image
+ */
+function getImageUrl(recipe) {
+  // If recipe has a valid Spoonacular ID, use our proxy
+  if (recipe?.id && isValidSpoonacularId(recipe.id)) {
+    return `/api/image-proxy/spoonacular/${recipe.id}?size=556x370`;
+  }
+
+  // If recipe has image property with http/https, use it directly
+  if (
+    recipe?.image &&
+    typeof recipe.image === "string" &&
+    recipe.image.match(/^https?:\/\//)
+  ) {
+    return recipe.image;
+  }
+
+  // For AI-generated recipes or recipes without proper images, use YouTube thumbnail
+  if (recipe?.title || recipe?.name) {
+    return getYouTubeThumbnail(recipe.title || recipe.name);
+  }
+
+  // Default fallback - generic cooking video thumbnail
+  return `/api/image-proxy/youtube/cooking`;
+}
 
 /**
  * Standardized RecipeCard component for consistent display across the application
@@ -19,6 +112,10 @@ const RecipeCard = ({
 }) => {
   const { isFavorite, toggleFavorite } = useFavorites();
   const { isAuthenticated } = useAuth();
+  const navigate = useNavigate();
+  const [imageError, setImageError] = useState(false);
+  const [retryCount, setRetryCount] = useState(0);
+  const [finalImageUrl, setFinalImageUrl] = useState(null);
 
   // Handle if recipe is undefined or null
   if (!recipe) {
@@ -50,100 +147,54 @@ const RecipeCard = ({
 
   const servings = recipe.servings || 4;
 
-  // Get appropriate image URL based on recipe type
-  const getImageUrl = () => {
-    // If recipe has an image that's not from Spoonacular, use it directly
-    if (
-      recipe.image &&
-      !recipe.image.includes("undefined") &&
-      !recipe.image.includes("spoonacular.com") &&
-      !recipe.image.includes("img.spoonacular.com")
-    ) {
-      return recipe.image;
+  // Initialize the image URL when recipe changes
+  useEffect(() => {
+    if (recipe) {
+      setFinalImageUrl(getImageUrl(recipe));
+      setImageError(false);
+      setRetryCount(0);
     }
+  }, [recipe]);
 
-    // Extract actual Spoonacular ID from the recipe object
-    let spoonacularId = null;
-
-    // For history items, check the nested recipe object first
-    if (sourceType === "spoonacular" && recipe.recipe) {
-      if (
-        typeof recipe.recipe.id === "number" ||
-        (typeof recipe.recipe.id === "string" && /^\d+$/.test(recipe.recipe.id))
-      ) {
-        // Recipe has a numeric ID directly in recipe.id
-        spoonacularId = recipe.recipe.id;
-      } else if (recipe.recipe.spoonacularId) {
-        // Check for a dedicated spoonacularId field
-        spoonacularId = recipe.recipe.spoonacularId;
-      }
+  // Handle click on the recipe card
+  const handleClick = () => {
+    if (onClick) {
+      onClick(recipe);
     }
-
-    // If we found a valid numeric ID in the recipe object
-    if (spoonacularId) {
-      // Always use the proxy for Spoonacular images
-      return `/api/image-proxy/spoonacular/${spoonacularId}?size=556x370`;
-    }
-
-    // Try to extract ID from sourceId if it's numeric (legacy)
-    if (sourceType === "spoonacular" && recipe.sourceId) {
-      if (
-        typeof recipe.sourceId === "number" ||
-        (typeof recipe.sourceId === "string" && /^\d+$/.test(recipe.sourceId))
-      ) {
-        return `/api/image-proxy/spoonacular/${recipe.sourceId}?size=556x370`;
-      }
-    }
-
-    // For numeric IDs that might be Spoonacular - ensure clean numeric ID
-    if (typeof recipeId === "number" || /^\d+$/.test(recipeId)) {
-      const cleanId = String(recipeId).replace(/\D/g, "");
-      if (cleanId) {
-        // Use our proxy instead of direct URL
-        return `/api/image-proxy/spoonacular/${cleanId}?size=556x370`;
-      }
-    }
-
-    // If the image URL is from Spoonacular, proxy it
-    if (
-      recipe.image &&
-      (recipe.image.includes("spoonacular.com") ||
-        recipe.image.includes("img.spoonacular.com"))
-    ) {
-      // Extract the recipe ID from the URL
-      const match = recipe.image.match(/\/(\d+)-\d+x\d+\.jpg/);
-      if (match && match[1]) {
-        return `/api/image-proxy/spoonacular/${match[1]}?size=556x370`;
-      }
-    }
-
-    // Use a data URI instead of external placeholder service
-    return "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='300' height='300' viewBox='0 0 300 300'%3E%3Crect width='300' height='300' fill='%23f0f0f0'/%3E%3Ctext x='50%25' y='50%25' font-size='18' text-anchor='middle' alignment-baseline='middle' font-family='Helvetica, Arial, sans-serif' fill='%23999999'%3ENo Image Available%3C/text%3E%3C/svg%3E";
   };
 
-  // Handle favorite toggling without propagating the click
-  const handleToggleFavorite = (e) => {
+  // Handle favorite toggling
+  const handleFavoriteClick = (e) => {
     e.stopPropagation();
-    e.preventDefault();
-
-    // Handle case where recipe might not have a valid ID
-    if (!recipeId) {
-      showToast("Cannot save this recipe to favorites", "error");
-      return;
-    }
-
-    // Check authentication
-    if (!isAuthenticated) {
-      showToast("Please log in to save favorites", "info");
-      return;
-    }
-
-    try {
-      // Use the standardized toggleFavorite function
+    if (isAuthenticated) {
       toggleFavorite(recipe);
-    } catch (error) {
-      console.error("Error toggling favorite:", error);
-      showToast("Failed to update favorites", "error");
+    } else {
+      // Redirect to login if not authenticated
+      navigate("/login");
+    }
+  };
+
+  // Handle image loading error
+  const handleImageError = () => {
+    if (retryCount < 2) {
+      // Try to reload the same image URL (handles temporary network issues)
+      console.log(
+        `Image load failed for ${recipe.title}, retry ${retryCount + 1}/2`
+      );
+      setRetryCount((prev) => prev + 1);
+      // Force a re-render by appending a timestamp
+      setFinalImageUrl(
+        `${finalImageUrl}${
+          finalImageUrl.includes("?") ? "&" : "?"
+        }t=${Date.now()}`
+      );
+    } else {
+      console.log(
+        `Image load failed after 2 retries, using YouTube thumbnail fallback`
+      );
+      setImageError(true);
+      // Use YouTube thumbnail as fallback
+      setFinalImageUrl(getYouTubeThumbnail(recipe.title || recipe.name));
     }
   };
 
@@ -212,79 +263,18 @@ const RecipeCard = ({
   return (
     <div
       className={`bg-white rounded-xl shadow-md overflow-hidden transition-all hover:shadow-lg cursor-pointer transform hover:scale-[1.02] flex flex-col h-full ${className}`}
-      onClick={onClick}>
+      onClick={handleClick}>
       {/* Image */}
       <div className="relative h-52 w-full overflow-hidden bg-gray-100">
         <img
-          src={getImageUrl()}
+          src={finalImageUrl}
           alt={getDisplayName()}
-          className="w-full h-full object-cover"
+          className={`w-full h-full object-cover ${
+            imageError ? "fallback-image" : ""
+          }`}
           crossOrigin="anonymous"
           loading="lazy"
-          onError={(e) => {
-            // Prevent infinite loop by tracking retry attempts
-            const currentRetries = parseInt(e.target.dataset.retries || "0");
-            if (currentRetries >= 2) {
-              console.log("Max retries reached, using fallback image");
-              e.target.src =
-                "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='300' height='300' viewBox='0 0 300 300'%3E%3Crect width='300' height='300' fill='%23f0f0f0'/%3E%3Ctext x='50%25' y='50%25' font-size='18' text-anchor='middle' alignment-baseline='middle' font-family='Helvetica, Arial, sans-serif' fill='%23999999'%3ENo Image Available%3C/text%3E%3C/svg%3E";
-              return;
-            }
-
-            // Increment retry counter
-            e.target.dataset.retries = currentRetries + 1;
-
-            // Try a different Spoonacular image size if the current one fails
-            const currentSrc = e.target.src;
-            if (
-              currentSrc.includes("/api/image-proxy/spoonacular/") &&
-              currentSrc.includes("size=556x370")
-            ) {
-              // Try the smaller image size through our proxy
-              const newSrc = currentSrc.replace("size=556x370", "size=312x231");
-              console.log(
-                "Trying smaller Spoonacular image via proxy:",
-                newSrc
-              );
-              e.target.src = newSrc;
-              return;
-            }
-
-            // If we're using the API proxy and that's failing, try a different size as last resort
-            if (currentSrc.includes("/api/image-proxy/spoonacular/")) {
-              // Extract the ID from the URL
-              const matches = currentSrc.match(
-                /\/api\/image-proxy\/spoonacular\/(\d+)/
-              );
-              if (matches && matches[1]) {
-                const spoonacularId = matches[1];
-                // Try an even smaller image size (240x150) as last resort
-                const lastResortUrl = `/api/image-proxy/spoonacular/${spoonacularId}?size=240x150`;
-                console.log("Trying last resort image size:", lastResortUrl);
-                e.target.src = lastResortUrl;
-                return;
-              }
-            }
-
-            // Recipe has a nested recipe object with ID
-            if (recipe.recipe && recipe.recipe.id) {
-              const directUrl = `/api/image-proxy/spoonacular/${recipe.recipe.id}?size=556x370`;
-              console.log(
-                "Trying direct URL with nested recipe.id:",
-                directUrl
-              );
-              e.target.src = directUrl;
-              return;
-            }
-
-            // If that doesn't work or for other images, use the SVG fallback
-            console.log(
-              "Using fallback image for:",
-              recipe.sourceId || recipeId
-            );
-            e.target.src =
-              "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='300' height='300' viewBox='0 0 300 300'%3E%3Crect width='300' height='300' fill='%23f0f0f0'/%3E%3Ctext x='50%25' y='50%25' font-size='18' text-anchor='middle' alignment-baseline='middle' font-family='Helvetica, Arial, sans-serif' fill='%23999999'%3ENo Image Available%3C/text%3E%3C/svg%3E";
-          }}
+          onError={handleImageError}
         />
 
         {/* Source type badge */}
@@ -303,7 +293,7 @@ const RecipeCard = ({
         {/* Show favorite button if enabled */}
         {showFavorite && (
           <button
-            onClick={handleToggleFavorite}
+            onClick={handleFavoriteClick}
             className="absolute top-3 right-3 p-1.5 bg-white rounded-full shadow-md hover:bg-gray-100 transform hover:scale-105 transition-all">
             {isRecipeFavorite ? (
               <HeartIcon className="h-5 w-5 text-red-500" />
