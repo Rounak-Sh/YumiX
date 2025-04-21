@@ -76,21 +76,45 @@ function isValidSpoonacularId(id) {
  * @returns {string} - URL for the recipe image
  */
 function getImageUrl(recipe) {
-  // If recipe has a valid Spoonacular ID, use our proxy
+  // Case 1: Recipe has a valid Spoonacular ID - use our proxy
   if (recipe?.id && isValidSpoonacularId(recipe.id)) {
     return `/api/image-proxy/spoonacular/${recipe.id}?size=556x370`;
   }
 
-  // If recipe has image property with http/https, use it directly
-  if (
-    recipe?.image &&
-    typeof recipe.image === "string" &&
-    recipe.image.match(/^https?:\/\//)
-  ) {
-    return recipe.image;
+  // Case 2: Check if image URL is from Spoonacular - extract ID and use our proxy
+  if (recipe?.image && typeof recipe.image === "string") {
+    // Check if it's a Spoonacular URL
+    const spoonacularMatches = recipe.image.match(
+      /spoonacular\.com\/recipeImages\/(\d+)-\d+x\d+/
+    );
+    if (spoonacularMatches && spoonacularMatches[1]) {
+      return `/api/image-proxy/spoonacular/${spoonacularMatches[1]}?size=556x370`;
+    }
+
+    // Alternative Spoonacular URL format
+    const altSpoonacularMatches = recipe.image.match(
+      /images\.spoonacular\.com\/file\/wximages\/(\d+)-\d+x\d+/
+    );
+    if (altSpoonacularMatches && altSpoonacularMatches[1]) {
+      return `/api/image-proxy/spoonacular/${altSpoonacularMatches[1]}?size=556x370`;
+    }
+
+    // If recipe has any other image URL (non-Spoonacular), use it directly
+    if (
+      recipe.image.match(/^https?:\/\//) &&
+      !recipe.image.includes("spoonacular.com") &&
+      !recipe.image.includes("img.spoonacular.com")
+    ) {
+      return recipe.image;
+    }
   }
 
-  // For AI-generated recipes or recipes without proper images, use YouTube thumbnail
+  // Case 3: Extract ID from recipe fields
+  if (recipe?.sourceId && isValidSpoonacularId(recipe.sourceId)) {
+    return `/api/image-proxy/spoonacular/${recipe.sourceId}?size=556x370`;
+  }
+
+  // Case 4: For AI-generated recipes or recipes without proper images, use YouTube thumbnail
   if (recipe?.title || recipe?.name) {
     return getYouTubeThumbnail(recipe.title || recipe.name);
   }
