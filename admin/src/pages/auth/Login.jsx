@@ -10,6 +10,7 @@ import { showToast } from "@/utils/toast";
 export default function Login() {
   const navigate = useNavigate();
   const { isOnline } = useNetworkStatus();
+  const [apiUrl, setApiUrl] = useState(window.__API_URL__ || "Unknown");
 
   const [formData, setFormData] = useState({
     email: "",
@@ -39,6 +40,12 @@ export default function Login() {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
+
+    // Log API URL on login attempt
+    console.log(
+      "Attempting login with API URL:",
+      window.__API_URL__ || adminApi?.defaults?.baseURL || "Unknown"
+    );
 
     // Validation
     if (!formData.email || !formData.password) {

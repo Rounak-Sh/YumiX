@@ -1,7 +1,21 @@
 import axios from "axios";
 
+// FORCE using the production URL in built app
+const RENDER_BACKEND_URL = "https://yumix-backend.onrender.com/api";
+const LOCALHOST_URL = "http://localhost:5000/api";
+
 // Determine the correct API URL with better fallback handling
 const determineApiUrl = () => {
+  // Check if we're running on Vercel (production deployment)
+  const isVercel =
+    typeof window !== "undefined" &&
+    window.location.hostname.includes("vercel.app");
+
+  if (isVercel) {
+    console.log("Vercel deployment detected, forcing Render backend URL");
+    return RENDER_BACKEND_URL;
+  }
+
   // First check for the environment variable
   const envUrl = import.meta.env.VITE_API_URL;
 
@@ -15,15 +29,25 @@ const determineApiUrl = () => {
 
   if (isProduction) {
     console.log("Production mode detected, using Render backend URL");
-    return "https://yumix-backend.onrender.com/api";
+    return RENDER_BACKEND_URL;
   }
 
   // Fallback to localhost
   console.log("Using localhost backend URL for development");
-  return "http://localhost:5000/api";
+  return LOCALHOST_URL;
 };
 
 const apiUrl = determineApiUrl();
+
+console.log("FINAL API URL BEING USED:", apiUrl);
+
+// Add to window for debugging
+if (typeof window !== "undefined") {
+  window.__API_URL__ = apiUrl;
+}
+
+// Override axios defaults for all requests
+axios.defaults.baseURL = apiUrl;
 
 const api = axios.create({
   baseURL: apiUrl,
