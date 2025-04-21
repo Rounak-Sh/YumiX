@@ -83,7 +83,7 @@ export default function Register() {
         phone = `+91${phone}`;
       }
 
-      const response = await axios.post("/api/auth/register", {
+      const response = await axios.post("/auth/register", {
         name: formData.name,
         email: formData.email,
         phone,

@@ -115,7 +115,7 @@ export default function Login() {
         password: formData.password,
       };
 
-      const response = await axios.post("/api/auth/login", loginDetails);
+      const response = await axios.post("/auth/login", loginDetails);
 
       if (response.data.success) {
         // Extract from nested data property correctly
@@ -217,7 +217,7 @@ export default function Login() {
 
       console.log("Sending forgot password request with:", { emailOrPhone });
 
-      const response = await axios.post("/api/auth/forgot-password", {
+      const response = await axios.post("/auth/forgot-password", {
         emailOrPhone,
       });
 
@@ -271,7 +271,7 @@ export default function Login() {
     try {
       setLoading(true);
 
-      const response = await axios.post("/api/auth/unlock-account", {
+      const response = await axios.post("/auth/unlock-account", {
         emailOrPhone: formData.emailOrPhone,
       });
 

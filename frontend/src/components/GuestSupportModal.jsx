@@ -50,7 +50,7 @@ const GuestSupportModal = ({ isOpen, onClose }) => {
     setIsSubmitting(true);
 
     try {
-      const response = await axios.post("/api/support/guest", {
+      const response = await axios.post("/support/guest", {
         email: formData.email,
         name: formData.name,
         message: formData.message,
@@ -86,7 +86,7 @@ const GuestSupportModal = ({ isOpen, onClose }) => {
     setIsSubmitting(true);
 
     try {
-      const response = await axios.post("/api/support/guest", {
+      const response = await axios.post("/support/guest", {
         email: formData.email,
         name: formData.name,
         message: formData.message,
@@ -128,7 +128,7 @@ const GuestSupportModal = ({ isOpen, onClose }) => {
     setIsRequestingCode(true);
 
     try {
-      const response = await axios.post("/api/auth/request-reactivation-otp", {
+      const response = await axios.post("/auth/request-reactivation-otp", {
         email: formData.email,
       });
 
@@ -158,7 +158,7 @@ const GuestSupportModal = ({ isOpen, onClose }) => {
     setIsSubmitting(true);
 
     try {
-      const response = await axios.post("/api/auth/reactivate-account", {
+      const response = await axios.post("/auth/reactivate-account", {
         email: formData.email,
         otp: verificationCode,
       });

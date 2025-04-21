@@ -202,7 +202,7 @@ export default function Verification() {
             : { phone: formData.phone, otp: otpString, type: "phone" };
 
         response = await axios.put(
-          "/api/users/profile/update-with-otp",
+          "/users/profile/update-with-otp",
           dataToUpdate
         );
 
@@ -241,7 +241,7 @@ export default function Verification() {
             );
 
             const otpResponse = await axios.post(
-              "/api/users/profile/update-otp",
+              "/users/profile/update-otp",
               phoneRequestPayload
             );
 
@@ -281,7 +281,7 @@ export default function Verification() {
               formData.currentPassword
             ) {
               const passwordResponse = await axios.put(
-                "/api/users/profile/update-with-otp",
+                "/users/profile/update-with-otp",
                 {
                   type: "password",
                   otp: otpString,
@@ -302,13 +302,13 @@ export default function Verification() {
           }
 
           // If we've completed all verifications, update non-sensitive info
-          const updateResponse = await axios.put("/api/users/profile", {
+          const updateResponse = await axios.put("/users/profile", {
             name: formData.name,
           });
 
           // Update password if needed
           if (formData.changePassword) {
-            await axios.put("/api/users/profile/password", {
+            await axios.put("/users/profile/password", {
               currentPassword: formData.currentPassword,
               newPassword: formData.newPassword,
               confirmPassword: formData.confirmPassword,
@@ -320,7 +320,7 @@ export default function Verification() {
           localStorage.removeItem("verificationDetails");
 
           // Refresh user data and navigate back to profile
-          const userResponse = await axios.get("/api/users/profile");
+          const userResponse = await axios.get("/users/profile");
           if (userResponse.data.success) {
             const userData = userResponse.data.data;
             const currentUser = JSON.parse(
@@ -340,7 +340,7 @@ export default function Verification() {
         });
 
         // Backend expects 'contact' for verify-reset-otp
-        response = await axios.post("/api/auth/verify-reset-otp", {
+        response = await axios.post("/auth/verify-reset-otp", {
           contact: contact,
           otp: otpString,
         });
@@ -358,7 +358,7 @@ export default function Verification() {
           });
         }
       } else {
-        response = await axios.post("/api/auth/verify-otp", {
+        response = await axios.post("/auth/verify-otp", {
           tempUserId: location.state?.userId,
           otp: otpString,
           isGoogleSignup: location.state?.isGoogleSignup,
@@ -456,7 +456,7 @@ export default function Verification() {
         );
 
         response = await axios.post(
-          "/api/users/profile/update-otp",
+          "/users/profile/update-otp",
           requestPayload
         );
 
@@ -478,7 +478,7 @@ export default function Verification() {
         }
 
         // Use the same endpoint that was used in Login.jsx
-        response = await axios.post("/api/auth/forgot-password", {
+        response = await axios.post("/auth/forgot-password", {
           emailOrPhone: contact, // Backend expects emailOrPhone for forgot-password
         });
 
@@ -496,8 +496,8 @@ export default function Verification() {
         }
 
         // Use regular resend-otp endpoint for registration
-        console.log("Sending resend OTP request to:", "/api/auth/resend-otp");
-        response = await axios.post("/api/auth/resend-otp", {
+        console.log("Sending resend OTP request to:", "/auth/resend-otp");
+        response = await axios.post("/auth/resend-otp", {
           tempUserId: tempUserId,
         });
         console.log("Resend OTP response:", response.data);
