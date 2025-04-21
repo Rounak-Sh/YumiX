@@ -190,8 +190,7 @@ class CashfreeService {
       const customerPhone = linkDetails.customerPhone || "9999999999";
 
       // Get frontend and backend URLs with appropriate fallbacks
-      const frontendUrl =
-        process.env.FRONTEND_URL || "https://yumix.vercel.app";
+      const frontendUrl = "https://yumix.vercel.app"; // Always use the deployed URL
       const backendUrl =
         process.env.BACKEND_URL || "https://yumix-backend.onrender.com";
 
