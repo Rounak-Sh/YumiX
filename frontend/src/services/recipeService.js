@@ -95,19 +95,31 @@ export const getRecipeById = async (recipeId) => {
   }
 };
 
-// Get featured recipes
+/**
+ * Get featured recipes
+ * @returns {Promise<Object>} Featured recipes
+ */
 export const getFeaturedRecipes = async () => {
   try {
-    const response = await axiosInstance.get("/api/recipes/featured");
+    // Remove redundant /api prefix since baseURL already includes it
+    const response = await axiosInstance.get("/recipes/featured");
     return response.data;
   } catch (error) {
     console.error("Error fetching featured recipes:", error);
+
+    // Handle connection errors differently
+    if (error instanceof ConnectionError) {
+      return {
+        success: false,
+        error: "Connection to server failed. Please check your internet.",
+        isConnectionError: true,
+      };
+    }
+
+    // Return error from server or default message
     return {
       success: false,
-      message:
-        error.response?.data?.message ||
-        "Failed to fetch featured recipes. Please try again later.",
-      data: [],
+      error: error.response?.data?.message || "Failed to load featured recipes",
     };
   }
 };

@@ -45,6 +45,7 @@ app.use(
       "https://yumix-frontend.vercel.app",
       "https://yumix-git-main-rounaqsh-gmailcoms-projects.vercel.app",
       "https://yumix-rounaqsh-gmailcoms-projects.vercel.app",
+      "https://yumix-users.vercel.app",
     ],
     credentials: true,
     methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
@@ -69,6 +70,7 @@ app.use((req, res, next) => {
     "https://yumix-frontend.vercel.app",
     "https://yumix-git-main-rounaqsh-gmailcoms-projects.vercel.app",
     "https://yumix-rounaqsh-gmailcoms-projects.vercel.app",
+    "https://yumix-users.vercel.app",
   ];
   const origin = req.headers.origin;
 

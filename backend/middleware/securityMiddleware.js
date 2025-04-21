@@ -12,6 +12,7 @@ export const corsOptions = {
     "https://yumix-frontend.vercel.app",
     "https://yumix-git-main-rounaqsh-gmailcoms-projects.vercel.app",
     "https://yumix-rounaqsh-gmailcoms-projects.vercel.app",
+    "https://yumix-users.vercel.app",
   ],
   methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
   allowedHeaders: ["Content-Type", "Authorization"],

@@ -2,6 +2,8 @@
  * Utility functions for API debugging and error handling
  */
 
+import axiosInstance, { ConnectionError } from "../config/axios";
+
 // Extract relevant error information for better debugging
 export const formatApiError = (error) => {
   if (!error) return "Unknown error";
@@ -21,14 +23,24 @@ export const formatApiError = (error) => {
   return errorInfo;
 };
 
-// Check the health of backend API and return status
-export const checkApiHealth = async (axiosInstance) => {
+/**
+ * Function to check if the API is available
+ * @returns {Promise<boolean>} - True if API is available, false otherwise
+ */
+export const checkApiHealth = async () => {
   try {
-    // Make sure this matches your backend route
-    const response = await axiosInstance.get("/api/health");
-    return response.data.status === "running";
+    // Remove redundant /api prefix since baseURL already includes it
+    const response = await axiosInstance.get("/health");
+    return {
+      success: true,
+      data: response.data,
+    };
   } catch (error) {
     console.error("API Health Check Error:", error);
-    return false;
+    return {
+      success: false,
+      error: error.message || "API is unavailable",
+      isConnectionError: error instanceof ConnectionError,
+    };
   }
 };

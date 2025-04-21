@@ -56,58 +56,29 @@ export function normalizePlanData(planData) {
   return normalizedPlan;
 }
 
-// Get all subscription plans
-export const getSubscriptionPlans = async (forceRefresh = false) => {
-  // Check cache first if not forcing refresh
-  const now = Date.now();
-  if (
-    !forceRefresh &&
-    cache.plans.data &&
-    now - cache.plans.timestamp < PLANS_CACHE_DURATION
-  ) {
-    return {
-      success: true,
-      data: cache.plans.data,
-    };
-  }
-
-  // Prevent duplicate requests
-  if (plansRequestInProgress) {
-    // Return cached data if available while request is in progress
-    if (cache.plans.data) {
-      return {
-        success: true,
-        data: cache.plans.data,
-      };
-    }
-    // Wait a bit and try again
-    await new Promise((resolve) => setTimeout(resolve, 500));
-    return getSubscriptionPlans(forceRefresh);
-  }
-
+/**
+ * Get all subscription plans available
+ * @returns {Promise<Object>} - Plans data
+ */
+export const getSubscriptionPlans = async () => {
   try {
-    plansRequestInProgress = true;
-    const response = await axiosInstance.get("/api/subscriptions/plans");
-
-    // Update cache on success
-    if (response.data.success && response.data.data) {
-      cache.plans.data = response.data.data;
-      cache.plans.timestamp = now;
-    }
-
+    // Remove redundant /api prefix since baseURL already includes it
+    const response = await axiosInstance.get("/subscriptions/plans");
     return response.data;
   } catch (error) {
-    // If we have cached data, return that on error
-    if (cache.plans.data) {
+    console.error("Error fetching subscription plans:", error);
+    if (error instanceof ConnectionError) {
       return {
-        success: true,
-        data: cache.plans.data,
-        fromCache: true,
+        success: false,
+        error: "Connection failed. Please check your internet.",
+        isConnectionError: true,
       };
     }
-    throw error;
-  } finally {
-    plansRequestInProgress = false;
+    return {
+      success: false,
+      error:
+        error.response?.data?.message || "Failed to load subscription plans",
+    };
   }
 };
 
