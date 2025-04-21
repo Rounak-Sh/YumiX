@@ -1,3 +1,4 @@
+import { useEffect } from "react";
 import { Routes, Route } from "react-router-dom";
 import { AdminProvider } from "@/contexts/AdminContext";
 import { ToastifyContainer } from "@/utils/toast.jsx";
@@ -19,8 +20,38 @@ import Payments from "@/pages/Payments";
 import Reports from "@/pages/Reports";
 import Settings from "@/pages/Settings";
 import Support from "@/pages/Support";
+import { showToast } from "@/utils/toast";
+import adminApi from "@/services/api";
 
 export default function App() {
+  // Add a backend connection check on startup
+  useEffect(() => {
+    const checkBackendConnection = async () => {
+      try {
+        // Try to connect to the backend health endpoint
+        await adminApi.checkHealth();
+        console.log("✅ Connected to backend successfully");
+      } catch (error) {
+        console.error("❌ Failed to connect to backend:", error);
+
+        // Show a toast notification
+        showToast.error(
+          "Could not connect to the server. Please check your internet connection or try again later."
+        );
+
+        // Log detailed information for debugging
+        console.error("Error details:", {
+          message: error.message,
+          code: error.code,
+          response: error.response,
+          config: error.config,
+        });
+      }
+    };
+
+    checkBackendConnection();
+  }, []);
+
   return (
     <AdminProvider>
       <NetworkStatus />

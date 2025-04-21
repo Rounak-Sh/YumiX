@@ -1,7 +1,32 @@
 import axios from "axios";
 
+// Determine the correct API URL with better fallback handling
+const determineApiUrl = () => {
+  // First check for the environment variable
+  const envUrl = import.meta.env.VITE_API_URL;
+
+  if (envUrl) {
+    console.log(`Using API URL from environment: ${envUrl}`);
+    return envUrl;
+  }
+
+  // Check for production mode
+  const isProduction = import.meta.env.MODE === "production";
+
+  if (isProduction) {
+    console.log("Production mode detected, using Render backend URL");
+    return "https://yumix-backend.onrender.com/api";
+  }
+
+  // Fallback to localhost
+  console.log("Using localhost backend URL for development");
+  return "http://localhost:5000/api";
+};
+
+const apiUrl = determineApiUrl();
+
 const api = axios.create({
-  baseURL: import.meta.env.VITE_API_URL || "http://localhost:5000/api",
+  baseURL: apiUrl,
   headers: {
     "Content-Type": "application/json",
   },
@@ -65,6 +90,27 @@ api.interceptors.response.use(null, async (error) => {
 });
 
 const adminApi = {
+  // Health check
+  checkHealth: async () => {
+    try {
+      const response = await api.get("/health");
+      return response;
+    } catch (error) {
+      console.error("Health check failed:", error.message);
+      // Try with the base URL without the /admin prefix as a fallback
+      try {
+        const baseUrlResponse = await axios.get(
+          apiUrl.replace("/admin", "") + "/health"
+        );
+        console.log("Health check succeeded with alternate URL");
+        return baseUrlResponse;
+      } catch (secondError) {
+        console.error("All health check attempts failed");
+        throw error; // Throw the original error
+      }
+    }
+  },
+
   // Auth
   login: (credentials) => api.post("/admin/auth/login", credentials),
   verifyOtp: (data) => api.post("/admin/auth/verify-otp", data),

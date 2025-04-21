@@ -18,6 +18,9 @@
       ]
     }
   ],
-  "buildCommand": "npm run build",
-  "outputDirectory": "dist"
+  "buildCommand": "npm run build:prod",
+  "outputDirectory": "dist",
+  "env": {
+    "VITE_API_URL": "https://yumix-backend.onrender.com/api"
+  }
 }
