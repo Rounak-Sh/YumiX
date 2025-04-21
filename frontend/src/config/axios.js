@@ -34,6 +34,16 @@ axiosInstance.interceptors.request.use(
     if (token) {
       config.headers.Authorization = `Bearer ${token}`;
     }
+
+    // Fix for duplicate /api prefix in URLs
+    if (config.url && config.url.startsWith("/api/")) {
+      // Log the URL fix for debugging
+      console.log(`Fixing duplicate /api prefix. Original URL: ${config.url}`);
+      // Remove the leading /api from the URL since it's already in baseURL
+      config.url = config.url.substring(4); // Remove '/api'
+      console.log(`Fixed URL: ${config.url}`);
+    }
+
     return config;
   },
   (error) => Promise.reject(error)
