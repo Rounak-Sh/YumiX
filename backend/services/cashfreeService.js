@@ -15,13 +15,25 @@ class CashfreeService {
 
     // Log initialization and environment variables
     console.log("CashfreeService initialized with:");
-    console.log("- FRONTEND_URL:", process.env.FRONTEND_URL);
-    console.log("- BACKEND_URL:", process.env.BACKEND_URL);
+    console.log("- APP ID:", this.appId ? "Set" : "NOT SET");
+    console.log("- SECRET KEY:", this.secretKey ? "Set" : "NOT SET");
+    console.log("- FRONTEND_URL:", process.env.FRONTEND_URL || "NOT SET");
+    console.log("- BACKEND_URL:", process.env.BACKEND_URL || "NOT SET");
     console.log("- API URL:", this.apiUrl);
     console.log(
       "- Environment:",
       this.isProduction ? "production" : "development"
     );
+
+    // Add validation checks
+    if (!this.appId || !this.secretKey) {
+      console.error(
+        "CRITICAL ERROR: Cashfree credentials are not properly configured!"
+      );
+      console.error(
+        "Please set CASHFREE_APP_ID and CASHFREE_SECRET_KEY in your .env file"
+      );
+    }
   }
 
   /**
@@ -31,6 +43,14 @@ class CashfreeService {
    */
   async createOrder(orderDetails) {
     try {
+      // Validate required credentials first
+      if (!this.appId || !this.secretKey) {
+        return {
+          success: false,
+          error: "Payment gateway credentials are not configured correctly.",
+        };
+      }
+
       // Generate a unique order ID
       const orderId = `order_${Date.now()}_${Math.floor(Math.random() * 1000)}`;
 
@@ -39,6 +59,12 @@ class CashfreeService {
         orderDetails.customerPhone && orderDetails.customerPhone.trim()
           ? orderDetails.customerPhone.trim()
           : "9999999999"; // Default fallback phone number
+
+      // Get frontend and backend URLs with appropriate fallbacks
+      const frontendUrl =
+        process.env.FRONTEND_URL || "https://yumix.vercel.app";
+      const backendUrl =
+        process.env.BACKEND_URL || "https://yumix-backend.onrender.com";
 
       // Create order payload with all required fields
       const orderData = {
@@ -53,13 +79,14 @@ class CashfreeService {
           customer_phone: customerPhone,
         },
         order_meta: {
-          return_url: `http://localhost:5174/payment-status?order_id={order_id}`,
-          notify_url: `${process.env.BACKEND_URL}/api/subscriptions/webhook`,
+          return_url: `${frontendUrl}/payment-status?order_id={order_id}`,
+          notify_url: `${backendUrl}/api/subscriptions/webhook`,
         },
         order_expiry_time: new Date(Date.now() + 30 * 60 * 1000).toISOString(), // 30 minutes
       };
 
       console.log("Return URL for order:", orderData.order_meta.return_url);
+      console.log("Notify URL for order:", orderData.order_meta.notify_url);
 
       console.log(
         "Creating Cashfree order:",
@@ -96,6 +123,28 @@ class CashfreeService {
       };
     } catch (error) {
       console.error("Error creating Cashfree order:", error);
+      console.error(
+        "Error details:",
+        JSON.stringify(
+          {
+            message: error.message,
+            response: error.response?.data,
+            status: error.response?.status,
+            config: {
+              url: error.config?.url,
+              method: error.config?.method,
+              headers: error.config?.headers
+                ? {
+                    "Content-Type": error.config.headers["Content-Type"],
+                    "x-api-version": error.config.headers["x-api-version"],
+                  }
+                : "No headers",
+            },
+          },
+          null,
+          2
+        )
+      );
 
       // Parse and return structured error information
       let errorResponse = {
@@ -124,6 +173,14 @@ class CashfreeService {
    */
   async createPaymentLink(linkDetails) {
     try {
+      // Validate required credentials first
+      if (!this.appId || !this.secretKey) {
+        return {
+          success: false,
+          error: "Payment gateway credentials are not configured correctly.",
+        };
+      }
+
       const linkId = `link_${Date.now()}`;
 
       // Handle missing customer details with fallbacks
@@ -131,6 +188,12 @@ class CashfreeService {
       const customerEmail = linkDetails.customerEmail || "user@example.com";
       // Cashfree requires a phone number - provide a fallback if missing
       const customerPhone = linkDetails.customerPhone || "9999999999";
+
+      // Get frontend and backend URLs with appropriate fallbacks
+      const frontendUrl =
+        process.env.FRONTEND_URL || "https://yumix.vercel.app";
+      const backendUrl =
+        process.env.BACKEND_URL || "https://yumix-backend.onrender.com";
 
       const linkData = {
         link_id: linkId,
@@ -147,8 +210,8 @@ class CashfreeService {
           send_email: false,
         },
         link_meta: {
-          return_url: `http://localhost:5174/payment-status?link_id={link_id}`,
-          notify_url: `${process.env.BACKEND_URL}/api/subscriptions/webhook`,
+          return_url: `${frontendUrl}/payment-status?link_id={link_id}`,
+          notify_url: `${backendUrl}/api/subscriptions/webhook`,
         },
         link_expiry_time: new Date(Date.now() + 30 * 60 * 1000).toISOString(),
       };
@@ -156,6 +219,10 @@ class CashfreeService {
       console.log(
         "Return URL for payment link:",
         linkData.link_meta.return_url
+      );
+      console.log(
+        "Notify URL for payment link:",
+        linkData.link_meta.notify_url
       );
 
       console.log(
@@ -185,6 +252,28 @@ class CashfreeService {
       };
     } catch (error) {
       console.error("Error creating Cashfree payment link:", error);
+      console.error(
+        "Payment link error details:",
+        JSON.stringify(
+          {
+            message: error.message,
+            response: error.response?.data,
+            status: error.response?.status,
+            config: {
+              url: error.config?.url,
+              method: error.config?.method,
+              headers: error.config?.headers
+                ? {
+                    "Content-Type": error.config.headers["Content-Type"],
+                    "x-api-version": error.config.headers["x-api-version"],
+                  }
+                : "No headers",
+            },
+          },
+          null,
+          2
+        )
+      );
 
       // Format error message for better debugging
       let errorMessage = error.message;

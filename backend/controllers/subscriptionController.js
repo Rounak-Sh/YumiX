@@ -40,6 +40,7 @@ const subscriptionController = {
       const userId = req.user.id;
 
       console.log("Starting order creation with planId:", planId);
+      console.log("User ID:", userId);
 
       // Validate planId
       if (!planId) {
@@ -86,7 +87,7 @@ const subscriptionController = {
         // Try payment link approach first (similar to the test app)
         // This method avoids phone validation issues as Cashfree will handle it
         const linkDetails = {
-          amount: plan.price,
+          amount: Number(plan.price), // Ensure amount is a number
           currency: "INR",
           userId: userId.toString(),
           customerName: user.name || "YuMix User",
@@ -96,12 +97,24 @@ const subscriptionController = {
           note: `Payment for ${plan.name} subscription`,
         };
 
-        console.log("Creating Cashfree payment link:", linkDetails);
+        console.log(
+          "Creating Cashfree payment link with details:",
+          JSON.stringify(linkDetails, null, 2)
+        );
+
+        // First check if cashfreeService is properly initialized
+        if (!cashfreeService) {
+          console.error("Error: cashfreeService is not initialized");
+          return res.status(500).json({
+            success: false,
+            message: "Payment gateway service is not initialized correctly",
+          });
+        }
 
         const linkResult = await cashfreeService.createPaymentLink(linkDetails);
 
         if (!linkResult.success) {
-          console.error("Error creating payment link:", linkResult.error);
+          console.error("Error creating payment link:", linkResult);
 
           // More specific error message
           let errorMessage = "Failed to create payment link";
@@ -112,7 +125,7 @@ const subscriptionController = {
           return res.status(400).json({
             success: false,
             message: errorMessage,
-            details: linkResult,
+            errorDetails: linkResult,
           });
         }
 
@@ -169,14 +182,17 @@ const subscriptionController = {
         console.error("Cashfree Payment Gateway Error:", {
           message: gatewayError.message,
           stack: gatewayError.stack,
+          response: gatewayError.response?.data,
+          status: gatewayError.response?.status,
           details: gatewayError,
         });
 
-        return res.status(500).json({
+        return res.status(400).json({
           success: false,
-          message: "Error creating Cashfree payment",
-          error: gatewayError.message,
-          details: "Please check server logs for more information",
+          message:
+            "Payment gateway error: " +
+            (gatewayError.message || "Unknown error"),
+          errorCode: gatewayError.response?.status || 500,
         });
       }
     } catch (error) {
