@@ -1,0 +1,71 @@
+# Node.js dependencies
+node_modules/
+npm-debug.log
+yarn-debug.log
+yarn-error.log
+package-lock.json
+
+# Environment files (containing secrets)
+.env
+.env.local
+.env.development
+.env.test
+.env.production
+.env.*
+backend/.env
+admin/.env
+frontend/.env
+
+# But allow example env files
+!.env.example
+!backend/.env.example
+!admin/.env.example
+!frontend/.env.example
+
+# Build directories
+dist/
+build/
+out/
+
+# Coverage
+coverage/
+
+# Cache
+.npm
+.eslintcache
+.cache
+
+# Logs
+logs
+*.log
+
+# OS specific files
+.DS_Store
+Thumbs.db
+ehthumbs.db
+Desktop.ini
+
+# Editor directories and files
+.idea/
+.vscode/
+*.sublime-project
+*.sublime-workspace
+*.suo
+*.ntvs*
+*.njsproj
+*.sln
+*.sw?
+
+# Debug files
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+lerna-debug.log*
+
+# Misc
+.DS_Store
+.env.local
+.env.development.local
+.env.test.local
+.env.production.local 
