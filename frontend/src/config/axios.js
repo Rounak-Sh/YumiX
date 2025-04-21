@@ -10,8 +10,14 @@ class ConnectionError extends Error {
   }
 }
 
-// Configure base URL from environment variable with fallback
-const baseURL = import.meta.env.VITE_API_URL || "http://localhost:5000/api";
+// Hardcode the backend URL to avoid environment variable issues
+const baseURL = "https://yumix-backend.onrender.com/api";
+console.log("Using API URL:", baseURL);
+
+// Add to window for debugging
+if (typeof window !== "undefined") {
+  window.__API_URL__ = baseURL;
+}
 
 const axiosInstance = axios.create({
   baseURL,
