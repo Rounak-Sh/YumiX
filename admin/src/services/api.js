@@ -1,53 +1,14 @@
 import axios from "axios";
 
-// FORCE using the production URL in built app
-const RENDER_BACKEND_URL = "https://yumix-backend.onrender.com/api";
-const LOCALHOST_URL = "http://localhost:5000/api";
+// Simple direct approach - use the Render URL directly
+const apiUrl = "https://yumix-backend.onrender.com/api";
 
-// Determine the correct API URL with better fallback handling
-const determineApiUrl = () => {
-  // Check if we're running on Vercel (production deployment)
-  const isVercel =
-    typeof window !== "undefined" &&
-    window.location.hostname.includes("vercel.app");
+console.log("Using API URL:", apiUrl);
 
-  if (isVercel) {
-    console.log("Vercel deployment detected, forcing Render backend URL");
-    return RENDER_BACKEND_URL;
-  }
-
-  // First check for the environment variable
-  const envUrl = import.meta.env.VITE_API_URL;
-
-  if (envUrl) {
-    console.log(`Using API URL from environment: ${envUrl}`);
-    return envUrl;
-  }
-
-  // Check for production mode
-  const isProduction = import.meta.env.MODE === "production";
-
-  if (isProduction) {
-    console.log("Production mode detected, using Render backend URL");
-    return RENDER_BACKEND_URL;
-  }
-
-  // Fallback to localhost
-  console.log("Using localhost backend URL for development");
-  return LOCALHOST_URL;
-};
-
-const apiUrl = determineApiUrl();
-
-console.log("FINAL API URL BEING USED:", apiUrl);
-
-// Add to window for debugging
+// Make API URL available for debugging
 if (typeof window !== "undefined") {
   window.__API_URL__ = apiUrl;
 }
-
-// Override axios defaults for all requests
-axios.defaults.baseURL = apiUrl;
 
 const api = axios.create({
   baseURL: apiUrl,
@@ -56,8 +17,6 @@ const api = axios.create({
   },
   withCredentials: true,
   timeout: 10000,
-  retry: 2,
-  retryDelay: 1000,
 });
 
 // Add token to requests
@@ -136,7 +95,13 @@ const adminApi = {
   },
 
   // Auth
-  login: (credentials) => api.post("/admin/auth/login", credentials),
+  login: (credentials) => {
+    console.log("Logging in with direct URL");
+    return axios.post(apiUrl + "/admin/auth/login", credentials, {
+      withCredentials: true,
+      headers: { "Content-Type": "application/json" },
+    });
+  },
   verifyOtp: (data) => api.post("/admin/auth/verify-otp", data),
   resetPassword: (data) => api.post("/admin/auth/reset-password", data),
   logout: () => api.post("/admin/auth/logout"),
