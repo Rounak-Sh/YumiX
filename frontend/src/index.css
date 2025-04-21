@@ -1,0 +1,206 @@
+/* Import Google Fonts */
+@import url("https://fonts.googleapis.com/css2?family=Pacifico&family=Poppins:wght@300;400;500;600;700&display=swap");
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* Base font styles */
+@layer base {
+  html {
+    font-family: "Inter", system-ui, sans-serif;
+  }
+
+  h1,
+  h2,
+  h3,
+  h4,
+  h5,
+  h6 {
+    font-family: "Poppins", system-ui, sans-serif;
+  }
+}
+
+/* Custom gradient backgrounds */
+.gradient-primary {
+  @apply bg-gradient-to-r from-[#FFCF50] to-[#FFB347];
+}
+
+.gradient-card {
+  @apply bg-gradient-to-t from-[#f7f7f7] to-white;
+}
+
+.gradient-background {
+  background-image: linear-gradient(
+    135deg,
+    rgba(30, 64, 110, 0.95) 0%,
+    rgba(64, 45, 95, 0.9) 100%
+  );
+}
+
+/* 3D button effect */
+.button-3d {
+  @apply transition-all duration-300;
+  box-shadow: 4px 4px 0px 0px rgba(35, 72, 106, 0.5);
+}
+
+.button-3d:hover {
+  box-shadow: 6px 6px 0px 0px rgba(35, 72, 106, 0.4);
+}
+
+.button-3d:active {
+  @apply translate-x-1 translate-y-1;
+  box-shadow: none;
+}
+
+/* Fix for white line and overflow issues */
+html,
+body {
+  overflow-x: hidden;
+  position: relative;
+  width: 100%;
+}
+
+/* Ingredient button hover effect */
+.ingredient-item {
+  transition: all 0.3s ease;
+}
+
+.ingredient-item:hover {
+  transform: translateY(-3px);
+  box-shadow: 0 5px 15px rgba(0, 0, 0, 0.1);
+}
+
+/* Main screen scrollbar styled to match theme */
+html::-webkit-scrollbar,
+body::-webkit-scrollbar {
+  width: 12px;
+}
+
+html::-webkit-scrollbar-track,
+body::-webkit-scrollbar-track {
+  background: #c48229; /* Updated to match the background color */
+}
+
+html::-webkit-scrollbar-thumb,
+body::-webkit-scrollbar-thumb {
+  background-color: rgba(
+    35,
+    72,
+    106,
+    0.6
+  ); /* Blue theme color with transparency */
+  border-radius: 9999px;
+  border: 3px solid #c48229; /* Updated border color to match bg */
+  background-clip: padding-box;
+}
+
+html::-webkit-scrollbar-thumb:hover,
+body::-webkit-scrollbar-thumb:hover {
+  background-color: rgba(35, 72, 106, 0.8); /* Darker blue on hover */
+}
+
+/* Firefox scrollbar */
+html,
+body {
+  scrollbar-width: thin;
+  scrollbar-color: rgba(35, 72, 106, 0.6) #c48229;
+}
+
+/* Fix for navbar shifting when dropdown opens */
+.headlessui-popover {
+  position: static !important;
+}
+
+/* Sparkle animation for selected items */
+.sparkle-effect {
+  position: relative;
+}
+
+.sparkle-effect::after {
+  content: "";
+  position: absolute;
+  top: -3px;
+  right: -3px;
+  width: 8px;
+  height: 8px;
+  background-color: #ffd700;
+  border-radius: 50%;
+  animation: sparkle 1.5s ease-in-out infinite;
+}
+
+@keyframes sparkle {
+  0%,
+  100% {
+    opacity: 1;
+    transform: scale(1);
+  }
+  50% {
+    opacity: 0.4;
+    transform: scale(0.8);
+  }
+}
+
+@layer utilities {
+  .custom-scrollbar {
+    --scrollbar-width: 8px;
+    --scrollbar-thumb-color: rgba(35, 72, 106, 0.4);
+    --scrollbar-thumb-hover-color: rgba(35, 72, 106, 0.6);
+    --scrollbar-dark-thumb-color: rgba(255, 207, 80, 0.3);
+    --scrollbar-dark-thumb-hover-color: rgba(255, 207, 80, 0.5);
+  }
+
+  .custom-scrollbar::-webkit-scrollbar {
+    width: var(--scrollbar-width);
+  }
+
+  .custom-scrollbar::-webkit-scrollbar-track {
+    background: transparent;
+    border-radius: 9999px;
+  }
+
+  .custom-scrollbar::-webkit-scrollbar-thumb {
+    background-color: var(--scrollbar-thumb-color);
+    border-radius: 9999px;
+    border: 2px solid transparent;
+    background-clip: padding-box;
+  }
+
+  .custom-scrollbar::-webkit-scrollbar-thumb:hover {
+    background-color: var(--scrollbar-thumb-hover-color);
+  }
+
+  .dark .custom-scrollbar::-webkit-scrollbar-thumb {
+    background-color: var(--scrollbar-dark-thumb-color);
+  }
+
+  .dark .custom-scrollbar::-webkit-scrollbar-thumb:hover {
+    background-color: var(--scrollbar-dark-thumb-hover-color);
+  }
+
+  .scrollbar-hide {
+    -ms-overflow-style: none; /* IE and Edge */
+    scrollbar-width: none; /* Firefox */
+  }
+  .scrollbar-hide::-webkit-scrollbar {
+    display: none; /* Chrome, Safari and Opera */
+  }
+}
+
+/* Additional fixes for dropdown menus */
+.headlessui-menu-button + div[role="menu"] {
+  z-index: 50 !important;
+  /* Prevent dropdown from causing page shift */
+  transform: translateZ(0);
+}
+
+/* Fix for notifications dropdown */
+.ui-dropdown-trigger:focus {
+  outline: none !important;
+}
+
+/* Fix for dropdown menu content */
+.dropdown-menu-content {
+  position: fixed;
+  z-index: 100;
+}
