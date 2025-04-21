@@ -30,6 +30,9 @@ process.env.RUNNING_FROM_APP_JS = "false";
 
 const app = express();
 
+// Trust X-Forwarded-For header for rate limiting on Render
+app.set("trust proxy", 1);
+
 // Security middleware
 app.use(
   cors({

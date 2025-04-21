@@ -1,7 +1,7 @@
 import express from "express";
 import axios from "axios";
 import { createProxyMiddleware } from "http-proxy-middleware";
-import logger from "../utils/logger";
+import logger from "../utils/logger.js";
 
 const router = express.Router();
 
