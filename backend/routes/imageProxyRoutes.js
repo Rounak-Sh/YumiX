@@ -2,6 +2,8 @@ import express from "express";
 import axios from "axios";
 import { createProxyMiddleware } from "http-proxy-middleware";
 import logger from "../utils/logger.js";
+import path from "path";
+import fs from "fs";
 
 const router = express.Router();
 
@@ -134,6 +136,7 @@ router.get("/youtube/:query", async (req, res) => {
     logger.info(`YouTube image proxy request for: ${cleanQuery}`);
 
     if (!cleanQuery || cleanQuery.length < 2) {
+      logger.warn(`Invalid or too short query: "${cleanQuery}"`);
       return res.status(400).send("Invalid query parameter");
     }
 
@@ -160,18 +163,36 @@ router.get("/youtube/:query", async (req, res) => {
     };
 
     // Default video ID - use a reliable cooking video
-    let videoId = "TGYKLtQ7vXI";
+    let videoId = "TGYKLtQ7vXI"; // Default cooking video
 
-    // Look for specific food words in the query
-    for (const [keyword, id] of Object.entries(foodVideoIds)) {
-      if (cleanQuery.toLowerCase().includes(keyword)) {
-        videoId = id;
-        break;
+    // Check for the "cooking" special case
+    if (cleanQuery.toLowerCase() === "cooking") {
+      logger.info(`Using default cooking video for "cooking" query`);
+      videoId = "TGYKLtQ7vXI";
+    } else {
+      // Look for specific food words in the query
+      let matchFound = false;
+      for (const [keyword, id] of Object.entries(foodVideoIds)) {
+        if (cleanQuery.toLowerCase().includes(keyword)) {
+          videoId = id;
+          matchFound = true;
+          logger.info(
+            `Matched keyword "${keyword}" in query, using videoId: ${id}`
+          );
+          break;
+        }
+      }
+
+      if (!matchFound) {
+        logger.info(
+          `No keyword match found, using default videoId for: "${cleanQuery}"`
+        );
       }
     }
 
     // Construct YouTube thumbnail URL
     const thumbnailUrl = `https://img.youtube.com/vi/${videoId}/mqdefault.jpg`;
+    logger.info(`Fetching YouTube thumbnail from: ${thumbnailUrl}`);
 
     try {
       const response = await axios.get(thumbnailUrl, {
@@ -183,14 +204,60 @@ router.get("/youtube/:query", async (req, res) => {
       res.setHeader("Content-Type", "image/jpeg");
       res.setHeader("Cache-Control", "public, max-age=86400"); // Cache for 24 hours
       res.setHeader("Access-Control-Allow-Origin", "*");
+      res.setHeader("X-Thumb-Source", "youtube");
+      res.setHeader("X-Video-ID", videoId);
 
+      logger.info(`Successfully served YouTube thumbnail for: "${cleanQuery}"`);
       return res.send(response.data);
     } catch (error) {
-      logger.error(`Failed to fetch YouTube thumbnail: ${error.message}`);
-      // Fall back to a direct thumbnail URL
-      return res.redirect(
-        "https://img.youtube.com/vi/TGYKLtQ7vXI/mqdefault.jpg"
+      logger.error(
+        `Failed to fetch YouTube thumbnail (${thumbnailUrl}): ${error.message}`
       );
+
+      // Try an alternative video ID as fallback
+      const fallbackId = "v2Zbs8H_Q6M"; // Reliable food video as backup
+      const fallbackUrl = `https://img.youtube.com/vi/${fallbackId}/mqdefault.jpg`;
+
+      logger.info(`Trying fallback YouTube thumbnail: ${fallbackUrl}`);
+
+      try {
+        const fallbackResponse = await axios.get(fallbackUrl, {
+          responseType: "arraybuffer",
+          timeout: 5000,
+        });
+
+        // Set appropriate headers for fallback
+        res.setHeader("Content-Type", "image/jpeg");
+        res.setHeader("Cache-Control", "public, max-age=86400");
+        res.setHeader("Access-Control-Allow-Origin", "*");
+        res.setHeader("X-Thumb-Source", "youtube-fallback");
+
+        logger.info(`Serving fallback YouTube thumbnail for: "${cleanQuery}"`);
+        return res.send(fallbackResponse.data);
+      } catch (fallbackError) {
+        logger.error(
+          `Fallback YouTube thumbnail also failed: ${fallbackError.message}`
+        );
+
+        // Ultimate fallback - serve a static image from the server
+        const staticFallback = path.join(
+          __dirname,
+          "../public/images/recipe-placeholder.jpg"
+        );
+
+        if (fs.existsSync(staticFallback)) {
+          logger.info(`Serving static fallback image for: "${cleanQuery}"`);
+          return res.sendFile(staticFallback);
+        } else {
+          // If all else fails, redirect to a known working YouTube thumbnail
+          logger.warn(
+            `No static fallback available, redirecting to hardcoded YouTube thumbnail`
+          );
+          return res.redirect(
+            "https://img.youtube.com/vi/TGYKLtQ7vXI/mqdefault.jpg"
+          );
+        }
+      }
     }
   } catch (error) {
     logger.error(`YouTube image proxy error: ${error.message}`);

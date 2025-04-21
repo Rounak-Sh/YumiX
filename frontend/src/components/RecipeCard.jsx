@@ -13,56 +13,18 @@ import { useNavigate } from "react-router-dom";
  * @returns {string} - YouTube thumbnail URL
  */
 const getYouTubeThumbnail = (recipeName) => {
+  if (!recipeName) return "/api/image-proxy/youtube/cooking"; // Use our proxy endpoint
+
   // Clean the recipe name for YouTube search
   const searchQuery = recipeName.replace(/recipe|spoonacular/gi, "").trim();
 
-  // If no valid search term, use a food-related thumbnail
+  // If no valid search term, use a food-related thumbnail through our proxy
   if (!searchQuery || searchQuery.length < 3) {
-    // Reliable food video thumbnails from YouTube
-    const defaultThumbnails = [
-      "https://img.youtube.com/vi/TGYKLtQ7vXI/mqdefault.jpg", // Cooking tutorial
-      "https://img.youtube.com/vi/v2Zbs8H_Q6M/mqdefault.jpg", // Food video
-      "https://img.youtube.com/vi/QSoZ7-CsR_g/mqdefault.jpg", // Recipe video
-      "https://img.youtube.com/vi/zDnTZt0H4ow/mqdefault.jpg", // Food plating
-      "https://img.youtube.com/vi/SQHeTbJkqkw/mqdefault.jpg", // Dessert making
-    ];
-
-    // Get a consistent thumbnail based on the recipe name's length
-    const index = recipeName.length % defaultThumbnails.length;
-    return defaultThumbnails[index];
+    return "/api/image-proxy/youtube/cooking";
   }
 
-  // YouTube's video ID for common food searches - these IDs are stable and reliable
-  const foodVideoIds = {
-    cake: "jADHtfRVP6c",
-    chocolate: "XoNIsoqT5s0",
-    cookies: "RxiG-_ANMjU",
-    pasta: "6rTi-XA7bLI",
-    chicken: "TGYKLtQ7vXI",
-    beef: "x_ZRiGTcTFM",
-    pizza: "sv3TXMSv6Lw",
-    salad: "NMt9dh9FJzE",
-    fish: "O0WLcA-Qhks",
-    vegetable: "Z2nIGQT-Qd4",
-    dessert: "SQHeTbJkqkw",
-    breakfast: "v2Zbs8H_Q6M",
-    bread: "lipLMAz2HQ4",
-    soup: "dHTy_yQ_wQ0",
-    fruit: "1_YABPeBZZM",
-    cheese: "QaHQlrBIXuQ",
-    vegan: "7CxIplM279U",
-    baking: "w4-YdT-24C8",
-  };
-
-  // Check if the recipe name contains any of our keywords
-  for (const [keyword, videoId] of Object.entries(foodVideoIds)) {
-    if (searchQuery.toLowerCase().includes(keyword)) {
-      return `https://img.youtube.com/vi/${videoId}/mqdefault.jpg`;
-    }
-  }
-
-  // Default reliable food thumbnail if no match
-  return "https://img.youtube.com/vi/TGYKLtQ7vXI/mqdefault.jpg";
+  // Use our backend proxy for YouTube thumbnails instead of direct access
+  return `/api/image-proxy/youtube/${encodeURIComponent(searchQuery)}`;
 };
 
 // Utility function to check if Spoonacular image URL has proper format
@@ -200,25 +162,50 @@ const RecipeCard = ({
 
   // Handle image loading error
   const handleImageError = () => {
+    // Log more data for debugging
+    console.log(`Image error for recipe:`, {
+      id: recipe.id,
+      title: recipe.title || recipe.name,
+      currentUrl: finalImageUrl,
+      retryCount,
+    });
+
     if (retryCount < 2) {
       // Try to reload the same image URL (handles temporary network issues)
       console.log(
-        `Image load failed for ${recipe.title}, retry ${retryCount + 1}/2`
+        `Image load failed for ${
+          recipe.title || recipe.name || "unknown recipe"
+        }, retry ${retryCount + 1}/2`
       );
       setRetryCount((prev) => prev + 1);
-      // Force a re-render by appending a timestamp
-      setFinalImageUrl(
-        `${finalImageUrl}${
-          finalImageUrl.includes("?") ? "&" : "?"
-        }t=${Date.now()}`
-      );
+
+      // For Spoonacular proxy URLs, try a different size on retry
+      if (finalImageUrl.includes("/api/image-proxy/spoonacular/")) {
+        const newSize = retryCount === 0 ? "312x231" : "240x150";
+        const baseUrl = finalImageUrl.split("?")[0];
+        setFinalImageUrl(`${baseUrl}?size=${newSize}&t=${Date.now()}`);
+      } else {
+        // Force a re-render by appending a timestamp
+        setFinalImageUrl(
+          `${finalImageUrl}${
+            finalImageUrl.includes("?") ? "&" : "?"
+          }t=${Date.now()}`
+        );
+      }
     } else {
       console.log(
-        `Image load failed after 2 retries, using YouTube thumbnail fallback`
+        `Image load failed after 2 retries, using YouTube thumbnail fallback for: ${
+          recipe.title || recipe.name || "unknown recipe"
+        }`
       );
       setImageError(true);
-      // Use YouTube thumbnail as fallback
-      setFinalImageUrl(getYouTubeThumbnail(recipe.title || recipe.name));
+
+      // Use our proxy endpoint for YouTube thumbnail as fallback
+      const fallbackUrl = `/api/image-proxy/youtube/${encodeURIComponent(
+        recipe.title || recipe.name || "cooking"
+      )}`;
+      console.log(`Using fallback URL: ${fallbackUrl}`);
+      setFinalImageUrl(fallbackUrl);
     }
   };
 
@@ -299,6 +286,8 @@ const RecipeCard = ({
           crossOrigin="anonymous"
           loading="lazy"
           onError={handleImageError}
+          data-recipe-id={recipe.id || "unknown"}
+          data-recipe-title={recipe.title || recipe.name || "unknown"}
         />
 
         {/* Source type badge */}
