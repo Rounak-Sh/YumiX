@@ -103,38 +103,26 @@ api.interceptors.response.use(null, async (error) => {
 const adminApi = {
   // Health check
   checkHealth: async () => {
-    try {
-      // Try the direct health endpoint first
-      const response = await axios.get(
-        "https://yumix-backend.onrender.com/health"
-      );
-      return response;
-    } catch (error) {
-      console.error("Health check failed:", error.message);
+    const healthEndpoints = [
+      "https://yumix-backend.onrender.com/health",
+      "https://yumix-backend.onrender.com/api/admin/health",
+      "https://yumix-backend.onrender.com/",
+    ];
 
-      // Try with the admin prefix as a fallback
+    for (const endpoint of healthEndpoints) {
       try {
-        const adminResponse = await axios.get(
-          "https://yumix-backend.onrender.com/api/admin/health"
-        );
-        console.log("Health check succeeded with admin URL");
-        return adminResponse;
-      } catch (adminError) {
-        console.error("Admin health check failed:", adminError.message);
-
-        // Try a basic ping to the root URL to see if the server is up at all
-        try {
-          const pingResponse = await axios.get(
-            "https://yumix-backend.onrender.com/"
-          );
-          console.log("Basic server ping succeeded");
-          return { data: { success: true, message: "Server is reachable" } };
-        } catch (pingError) {
-          console.error("All health check attempts failed");
-          throw error; // Throw the original error
-        }
+        console.log(`Trying health endpoint: ${endpoint}`);
+        const response = await axios.get(endpoint);
+        console.log(`Health check succeeded with endpoint: ${endpoint}`);
+        return response;
+      } catch (error) {
+        console.error(`Health check failed for ${endpoint}:`, error.message);
       }
     }
+
+    // If all attempts failed
+    console.error("All health check attempts failed");
+    throw new Error("Failed to connect to backend");
   },
 
   // Auth
@@ -144,9 +132,9 @@ const adminApi = {
       passwordProvided: !!credentials.password,
     });
 
-    // Fix the URL by ensuring no v1 is present
-    const loginUrl = filterURL(`${apiUrl}/admin/auth/login`);
-    console.log("CLEAN API URL for login:", loginUrl);
+    // Use absolute URL to ensure it doesn't get prepended with the frontend URL
+    const loginUrl = "https://yumix-backend.onrender.com/api/admin/auth/login";
+    console.log("ABSOLUTE API URL for login:", loginUrl);
 
     return axios
       .post(loginUrl, credentials, {
@@ -186,8 +174,16 @@ const adminApi = {
 
   verifyOtp: (data) => {
     console.log("Verifying OTP for:", data.email);
-    return api
-      .post("/admin/auth/verify-otp", data)
+    // Use absolute URL to avoid prepending with frontend URL
+    const verifyUrl =
+      "https://yumix-backend.onrender.com/api/admin/auth/verify-otp";
+    console.log("ABSOLUTE URL for OTP verification:", verifyUrl);
+
+    return axios
+      .post(verifyUrl, data, {
+        withCredentials: true,
+        headers: { "Content-Type": "application/json" },
+      })
       .then((response) => {
         console.log("OTP verification response:", {
           success: response.data?.success,
