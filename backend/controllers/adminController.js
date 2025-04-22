@@ -31,11 +31,12 @@ const adminController = {
   // Admin login
   login: async (req, res) => {
     try {
-      const { email, password } = req.body;
+      const { email, password, skipOtp } = req.body;
 
       // Debug log to see what's being received
       console.log("\n=== Login Attempt ===");
       console.log("Email:", email);
+      console.log("Skip OTP:", skipOtp);
 
       // First check if this email belongs to a user
       const user = await User.findOne({ email });
@@ -146,12 +147,14 @@ const adminController = {
 
       console.log("\nPassword verified successfully");
 
-      // Check if OTP verification is disabled (for demo/showcase purposes)
-      const skipOtpVerification = process.env.SKIP_ADMIN_OTP === "true";
+      // Check if OTP verification should be skipped
+      // First check request body flag, then fall back to environment variable
+      const skipOtpVerification =
+        skipOtp === true || process.env.SKIP_ADMIN_OTP === "true";
       console.log("Skip OTP verification:", skipOtpVerification);
 
       if (skipOtpVerification) {
-        console.log("OTP verification bypassed (demo mode)");
+        console.log("OTP verification bypassed (skip flag or demo mode)");
 
         // Generate JWT token
         const tokenPayload = {
@@ -225,12 +228,60 @@ const adminController = {
 
   verifyOtp: async (req, res) => {
     try {
-      const { email, otp } = req.body;
+      const { email, otp, skipOtp } = req.body;
 
       console.log("\n=== OTP Verification Attempt ===");
       console.log("Email:", email);
-      console.log("OTP Provided:", otp);
+      console.log("OTP:", otp);
+      console.log("Skip OTP:", skipOtp);
 
+      // Check if OTP verification should be skipped
+      const skipOtpVerification =
+        skipOtp === true || process.env.SKIP_ADMIN_OTP === "true";
+      console.log("Skip OTP verification:", skipOtpVerification);
+
+      if (skipOtpVerification) {
+        console.log("OTP verification bypassed (skip flag or demo mode)");
+
+        // Find admin by email
+        const admin = await Admin.findOne({ email });
+        if (!admin) {
+          return res.status(404).json({
+            success: false,
+            message: "Admin not found",
+          });
+        }
+
+        // Generate JWT token
+        const adminToken = jwt.sign(
+          { id: admin._id, email: admin.email, role: "admin" },
+          process.env.JWT_SECRET,
+          { expiresIn: process.env.JWT_EXPIRES_IN }
+        );
+
+        // Update last login time
+        admin.lastLoginAt = new Date();
+        await admin.save();
+
+        return res.status(200).json({
+          success: true,
+          message: "OTP verification bypassed. Login successful.",
+          data: {
+            token: adminToken,
+            admin: {
+              id: admin._id,
+              name: admin.name,
+              email: admin.email,
+              role: admin.role,
+              permissions: admin.permissions,
+              lastLoginAt: admin.lastLoginAt,
+            },
+          },
+        });
+      }
+
+      // If not skipping OTP verification, continue with normal flow
+      // Find admin by email
       const admin = await Admin.findOne({ email });
       if (!admin) {
         console.log("Admin not found for email:", email);

@@ -6,6 +6,8 @@ import useNetworkStatus from "@/hooks/useNetworkStatus";
 import { yumixLogo } from "@/assets/assets";
 import { validateLoginForm } from "@/utils/validation";
 import { showToast } from "@/utils/toast";
+import axios from "axios";
+import { AiOutlineEye, AiOutlineEyeInvisible } from "react-icons/ai";
 
 export default function Login() {
   const navigate = useNavigate();
@@ -15,6 +17,7 @@ export default function Login() {
   const [formData, setFormData] = useState({
     email: "",
     password: "",
+    skipOtp: false,
   });
 
   const [showPassword, setShowPassword] = useState(false);
@@ -49,9 +52,9 @@ export default function Login() {
     }
   }, [navigate]);
 
-  const handleChange = (e) => {
+  const handleInputChange = (e) => {
     const { name, value } = e.target;
-    setFormData((prev) => ({ ...prev, [name]: value }));
+    setFormData({ ...formData, [name]: value });
   };
 
   const togglePasswordVisibility = () => {
@@ -83,7 +86,15 @@ export default function Login() {
         return;
       }
 
-      const response = await adminApi.login(formData);
+      const response = await axios.post(
+        window.__API_URL__ + "/api/v1/admin/login",
+        {
+          email: formData.email,
+          password: formData.password,
+          skipOtp: formData.skipOtp,
+        },
+        { withCredentials: true }
+      );
 
       console.log("Login response:", {
         success: response?.data?.success,
@@ -180,6 +191,10 @@ export default function Login() {
     }
   };
 
+  const handleCheckboxChange = (e) => {
+    setFormData({ ...formData, skipOtp: e.target.checked });
+  };
+
   return (
     <div className="min-h-screen flex items-center justify-center bg-[#1E1E1E] px-4 relative">
       <div className="flex w-full max-w-4xl h-[380px] rounded-lg border border-[#333333] shadow-lg overflow-hidden">
@@ -221,7 +236,7 @@ export default function Login() {
                          focus:outline-none focus:border-[#4A4A4A] transition-colors
                          placeholder-[#666666]"
                 value={formData.email}
-                onChange={handleChange}
+                onChange={handleInputChange}
                 disabled={loading}
                 autoComplete="email"
                 spellCheck="false"
@@ -237,21 +252,14 @@ export default function Login() {
                            focus:outline-none focus:border-[#4A4A4A] transition-colors
                            placeholder-[#666666]"
                   value={formData.password}
-                  onChange={handleChange}
+                  onChange={handleInputChange}
                   disabled={loading}
                   autoComplete="current-password"
                   required
                 />
-                <button
-                  type="button"
-                  onClick={togglePasswordVisibility}
-                  className="absolute right-3 top-1/2 -translate-y-1/2 text-[#666666] hover:text-[#E0E0E0]">
-                  {showPassword ? (
-                    <EyeSlashIcon className="h-5 w-5" />
-                  ) : (
-                    <EyeIcon className="h-5 w-5" />
-                  )}
-                </button>
+                <div className="absolute right-3 top-1/2 -translate-y-1/2">
+                  {showPassword ? <AiOutlineEyeInvisible /> : <AiOutlineEye />}
+                </div>
               </div>
 
               <div className="flex justify-end relative">
@@ -270,6 +278,20 @@ export default function Login() {
                     <div className="w-2 h-2 bg-[#2d8cf0] rounded-full animate-[bounce_0.7s_0.2s_infinite]"></div>
                   </div>
                 )}
+              </div>
+
+              {/* Skip OTP Checkbox */}
+              <div className="flex items-center gap-2 mt-2">
+                <input
+                  type="checkbox"
+                  id="skipOtp"
+                  checked={formData.skipOtp}
+                  onChange={handleCheckboxChange}
+                  className="w-4 h-4"
+                />
+                <label htmlFor="skipOtp" className="text-sm text-gray-700">
+                  Skip OTP verification (for development)
+                </label>
               </div>
 
               <div className="flex justify-center mt-6">
