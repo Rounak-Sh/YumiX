@@ -24,8 +24,17 @@ export default function Login() {
 
   useEffect(() => {
     const token = localStorage.getItem("adminToken");
-    if (token) {
+
+    console.log("Login page - checking token");
+    console.log("Token exists:", !!token);
+
+    // Check if token is potentially valid
+    if (token && token.length > 20) {
+      console.log("Token looks valid, redirecting to dashboard");
       navigate("/dashboard", { replace: true });
+    } else if (token) {
+      console.log("Invalid token found, clearing it");
+      localStorage.removeItem("adminToken");
     }
   }, [navigate]);
 

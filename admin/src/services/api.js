@@ -119,10 +119,23 @@ const adminApi = {
       })
       .then((response) => {
         console.log("Login API response status:", response.status);
-        console.log(
-          "Login API response contains requireOTP:",
-          response.data?.requireOTP !== undefined
-        );
+        console.log("Login API response:", {
+          success: response.data?.success,
+          requireOTP: response.data?.requireOTP !== undefined,
+          hasToken: !!response.data?.token,
+          message: response.data?.message,
+        });
+
+        // If login is successful but no OTP required and token is present
+        if (
+          response.data?.success &&
+          !response.data?.requireOTP &&
+          response.data?.token
+        ) {
+          console.log("Direct login with token, storing token");
+          localStorage.setItem("adminToken", response.data.token);
+        }
+
         return response;
       })
       .catch((error) => {
@@ -135,7 +148,30 @@ const adminApi = {
       });
   },
 
-  verifyOtp: (data) => api.post("/admin/auth/verify-otp", data),
+  verifyOtp: (data) => {
+    console.log("Verifying OTP for:", data.email);
+    return api
+      .post("/admin/auth/verify-otp", data)
+      .then((response) => {
+        console.log("OTP verification successful, response:", {
+          success: response.data?.success,
+          hasToken: !!response.data?.token,
+        });
+
+        // Store token if present in response
+        if (response.data?.success && response.data?.token) {
+          console.log("Storing token from OTP verification");
+          localStorage.setItem("adminToken", response.data.token);
+        }
+
+        return response;
+      })
+      .catch((error) => {
+        console.error("OTP verification failed:", error);
+        throw error;
+      });
+  },
+
   resetPassword: (data) => api.post("/admin/auth/reset-password", data),
   logout: () => api.post("/admin/auth/logout"),
 

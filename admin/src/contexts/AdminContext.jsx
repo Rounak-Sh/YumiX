@@ -61,37 +61,53 @@ function AdminProvider({ children }) {
     const checkAuth = async () => {
       const token = localStorage.getItem("adminToken");
 
+      console.log("AdminContext - Checking authentication");
+      console.log("Current path:", window.location.pathname);
+      console.log("Token exists:", !!token);
+
+      // Auth routes where we don't need to redirect to login
+      const isAuthRoute =
+        window.location.pathname.includes("/login") ||
+        window.location.pathname.includes("/verify-otp") ||
+        window.location.pathname.includes("/reset-password");
+
       if (!token) {
+        console.log(
+          "No token found, redirecting to login if not on auth route"
+        );
         setLoading(false);
-        if (
-          !window.location.pathname.includes("/login") &&
-          !window.location.pathname.includes("/verify-otp") &&
-          !window.location.pathname.includes("/reset-password")
-        ) {
+
+        if (!isAuthRoute) {
+          console.log("Redirecting to login page");
           navigate("/login");
         }
         return;
       }
 
       try {
-        if (
-          !window.location.pathname.includes("/login") &&
-          !window.location.pathname.includes("/verify-otp") &&
-          !window.location.pathname.includes("/reset-password")
-        ) {
+        // Only fetch admin data if not on login/verification page
+        if (!isAuthRoute) {
+          console.log("Fetching admin data for authenticated route");
           await updateAdminData();
+        } else {
+          console.log("On auth route, not fetching admin data");
+          setLoading(false);
         }
       } catch (error) {
+        console.error("Auth check error:", error);
+
         if (error.code !== "ERR_NETWORK") {
           setError(error.message || "Authentication check failed");
+
           if (error.response && error.response.status === 401) {
+            console.log("401 error - clearing token and redirecting to login");
             localStorage.removeItem("adminToken");
-            if (!window.location.pathname.includes("/login")) {
+
+            if (!isAuthRoute) {
               navigate("/login");
             }
           }
         }
-      } finally {
         setLoading(false);
       }
     };

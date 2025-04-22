@@ -96,10 +96,18 @@ export default function OtpVerification() {
     setLoading(true);
 
     try {
+      console.log("Submitting OTP verification for email:", email);
+
       const response = await adminApi.verifyOtp({
         email,
         otp: otpString,
         isForgotPassword,
+      });
+
+      console.log("OTP verification response:", {
+        success: response.data?.success,
+        hasToken: !!response.data?.token,
+        message: response.data?.message,
       });
 
       if (response.data.success) {
@@ -112,7 +120,18 @@ export default function OtpVerification() {
           });
         } else {
           if (response.data.token) {
+            console.log(
+              "Storing admin token, length:",
+              response.data.token.length
+            );
             localStorage.setItem("adminToken", response.data.token);
+
+            // Double-check storage
+            const storedToken = localStorage.getItem("adminToken");
+            console.log("Token stored successfully:", !!storedToken);
+            console.log("Stored token length:", storedToken?.length);
+          } else {
+            console.error("No token received in OTP verification response");
           }
           setShowSuccess(true);
           setVisible(true);
@@ -124,6 +143,9 @@ export default function OtpVerification() {
         }
       }
     } catch (error) {
+      console.error("OTP verification error:", error);
+      console.error("Error response:", error.response?.data);
+
       showToast.error(
         error.response?.data?.message ||
           "Failed to verify OTP. Please try again."
