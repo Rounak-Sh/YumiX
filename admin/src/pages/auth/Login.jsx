@@ -17,7 +17,7 @@ export default function Login() {
   const [formData, setFormData] = useState({
     email: "",
     password: "",
-    skipOtp: false,
+    skipOtp: true,
   });
 
   const [showPassword, setShowPassword] = useState(false);
@@ -87,7 +87,7 @@ export default function Login() {
       }
 
       const response = await axios.post(
-        window.__API_URL__ + "/api/v1/admin/login",
+        window.__API_URL__ + "/admin/login",
         {
           email: formData.email,
           password: formData.password,
@@ -327,6 +327,35 @@ export default function Login() {
               </div>
             )}
           </div>
+        </div>
+      </div>
+
+      {/* Admin Credentials Display */}
+      <div className="absolute bottom-4 text-center w-full">
+        <button
+          onClick={() =>
+            document.getElementById("admin-creds").classList.toggle("hidden")
+          }
+          className="text-[#666666] hover:text-[#E0E0E0] text-sm flex items-center justify-center mx-auto">
+          <svg
+            xmlns="http://www.w3.org/2000/svg"
+            className="h-5 w-5 mr-1"
+            viewBox="0 0 20 20"
+            fill="currentColor">
+            <path
+              fillRule="evenodd"
+              d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z"
+              clipRule="evenodd"
+            />
+          </svg>
+          Admin Access
+        </button>
+        <div
+          id="admin-creds"
+          className="hidden mt-2 mx-auto max-w-xs bg-[#252525] border border-[#333333] rounded-lg p-3">
+          <p className="text-[#666666] text-xs">Admin Credentials:</p>
+          <p className="text-[#E0E0E0] text-sm">Email: admin@yumix.com</p>
+          <p className="text-[#E0E0E0] text-sm">Password: admin123</p>
         </div>
       </div>
     </div>

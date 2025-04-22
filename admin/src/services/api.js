@@ -1,7 +1,7 @@
 import axios from "axios";
 
 // Simple direct approach - use the Render URL directly
-const apiUrl = "https://yumix-backend.onrender.com/api";
+const apiUrl = "https://yumix-backend.onrender.com/api/v1";
 
 console.log("Using API URL:", apiUrl);
 
