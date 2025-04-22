@@ -197,7 +197,7 @@ const adminController = {
       }
 
       // Check if OTP exists and is valid
-      if (!admin.otp || !admin.otpExpiry) {
+      if (!admin.otp) {
         return res.status(400).json({
           success: false,
           message: "No OTP was sent. Please request a new one.",
@@ -205,7 +205,7 @@ const adminController = {
       }
 
       // Check if OTP has expired
-      if (Date.now() > admin.otpExpiry.getTime()) {
+      if (!admin.otpExpiry || Date.now() > admin.otpExpiry.getTime()) {
         return res.status(400).json({
           success: false,
           message: "OTP has expired. Please request a new one.",
