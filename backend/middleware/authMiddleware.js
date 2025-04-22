@@ -91,46 +91,93 @@ export const protect = async (req, res, next) => {
 // Admin authentication middleware
 export const adminProtect = async (req, res, next) => {
   try {
-    // Get token from header
-    const token = req.headers.authorization?.split(" ")[1];
+    // Log the incoming authorization header for debugging
+    console.log(
+      "Authorization header:",
+      req.headers.authorization ? "Present" : "Missing"
+    );
 
+    // Get token from header with better error handling
+    if (
+      !req.headers.authorization ||
+      !req.headers.authorization.startsWith("Bearer ")
+    ) {
+      console.log(
+        "Invalid authorization header format:",
+        req.headers.authorization
+      );
+      return res.status(401).json({
+        success: false,
+        message: "Invalid authorization format. Please login again.",
+      });
+    }
+
+    const token = req.headers.authorization.split(" ")[1];
+
+    // Check if token exists
     if (!token) {
       return res.status(401).json({
         success: false,
-        message: "Not authorized to access this route",
+        message: "Not authorized to access this route, token missing",
       });
     }
 
-    // Verify token
-    const decoded = jwt.verify(token, process.env.JWT_SECRET);
-
-    // Get admin from token
-    const admin = await Admin.findById(decoded.id).select("-password");
-    if (!admin) {
-      return res.status(401).json({
-        success: false,
-        message: "Admin not found",
+    try {
+      // Verify token
+      const decoded = jwt.verify(token, process.env.JWT_SECRET);
+      console.log("Token decoded successfully:", {
+        id: decoded.id,
+        role: decoded.role,
       });
+
+      // Get admin from token
+      const admin = await Admin.findById(decoded.id).select("-password");
+      if (!admin) {
+        return res.status(401).json({
+          success: false,
+          message: "Admin not found",
+        });
+      }
+
+      // Check if admin is active
+      if (admin.status !== "active") {
+        return res.status(401).json({
+          success: false,
+          message: "Admin account is not active",
+        });
+      }
+
+      // Attach admin to request object
+      req.user = admin; // This is what the subscription controller expects
+      req.admin = admin; // Keep this for backward compatibility
+
+      next();
+    } catch (error) {
+      console.error("JWT verification error:", error);
+
+      if (error.name === "TokenExpiredError") {
+        return res.status(401).json({
+          success: false,
+          message: "Your session has expired. Please login again.",
+        });
+      } else if (error.name === "JsonWebTokenError") {
+        return res.status(401).json({
+          success: false,
+          message: "Invalid token. Please login again.",
+          details: error.message,
+        });
+      } else {
+        return res.status(401).json({
+          success: false,
+          message: "Authentication error. Please login again.",
+        });
+      }
     }
-
-    // Check if admin is active
-    if (admin.status !== "active") {
-      return res.status(401).json({
-        success: false,
-        message: "Admin account is not active",
-      });
-    }
-
-    // Attach admin to request object
-    req.user = admin; // This is what the subscription controller expects
-    req.admin = admin; // Keep this for backward compatibility
-
-    next();
   } catch (error) {
     console.error("Auth middleware error:", error);
-    return res.status(401).json({
+    return res.status(500).json({
       success: false,
-      message: "Not authorized to access this route",
+      message: "Server error in authentication",
     });
   }
 };

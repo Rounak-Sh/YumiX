@@ -24,7 +24,17 @@ api.interceptors.request.use(
   (config) => {
     const token = localStorage.getItem("adminToken");
     if (token) {
+      // Log token format for debugging (safely trimmed)
+      console.log(
+        "Auth token format check:",
+        token.length > 10
+          ? `${token.substring(0, 5)}...${token.substring(token.length - 5)}`
+          : "Invalid token format"
+      );
+
       config.headers.Authorization = `Bearer ${token}`;
+    } else {
+      console.log("No admin token found in localStorage");
     }
     return config;
   },

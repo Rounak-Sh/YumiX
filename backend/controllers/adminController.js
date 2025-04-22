@@ -187,16 +187,27 @@ const adminController = {
     try {
       const { email, otp } = req.body;
 
+      console.log("\n=== OTP Verification Attempt ===");
+      console.log("Email:", email);
+      console.log("OTP Provided:", otp);
+
       const admin = await Admin.findOne({ email });
       if (!admin) {
+        console.log("Admin not found for email:", email);
         return res.status(404).json({
           success: false,
           message: "Admin not found",
         });
       }
 
+      console.log("Admin OTP Status:");
+      console.log("Stored OTP:", admin.otp);
+      console.log("OTP Expiry:", admin.otpExpiry);
+      console.log("Current Time:", new Date());
+
       // Check if OTP exists and is valid
-      if (!admin.otp || !admin.otpExpiry) {
+      if (!admin.otp) {
+        console.log("No OTP found in admin record");
         return res.status(400).json({
           success: false,
           message: "No OTP was sent. Please request a new one.",
@@ -204,7 +215,9 @@ const adminController = {
       }
 
       // Check if OTP has expired
-      if (Date.now() > admin.otpExpiry.getTime()) {
+      if (!admin.otpExpiry || Date.now() > admin.otpExpiry.getTime()) {
+        console.log("OTP has expired. Current time:", new Date());
+        console.log("OTP expiry time:", admin.otpExpiry);
         return res.status(400).json({
           success: false,
           message: "OTP has expired. Please request a new one.",
@@ -213,11 +226,14 @@ const adminController = {
 
       // Verify OTP
       if (admin.otp !== otp) {
+        console.log("Invalid OTP. Expected:", admin.otp, "Received:", otp);
         return res.status(400).json({
           success: false,
           message: "Invalid OTP",
         });
       }
+
+      console.log("OTP verified successfully");
 
       // Clear OTP fields
       admin.otp = null;
@@ -226,10 +242,22 @@ const adminController = {
       await admin.save();
 
       // Generate JWT token
-      const token = jwt.sign(
-        { id: admin._id, role: admin.role },
-        process.env.JWT_SECRET,
-        { expiresIn: "24h" }
+      const tokenPayload = {
+        id: admin._id.toString(),
+        role: admin.role || "admin",
+      };
+
+      console.log("Creating JWT token with payload:", tokenPayload);
+
+      const token = jwt.sign(tokenPayload, process.env.JWT_SECRET, {
+        expiresIn: "24h",
+      });
+
+      console.log("JWT token generated successfully");
+      console.log("Token length:", token.length);
+      console.log(
+        "Token preview:",
+        `${token.substring(0, 10)}...${token.substring(token.length - 10)}`
       );
 
       res.status(200).json({
