@@ -46,9 +46,6 @@ router.post(
   adminController.login
 );
 
-// Add the demo login route without rate limiting
-router.post("/auth/demo-login", adminController.demoLogin);
-
 router.post("/auth/verify-otp", authLimiter, adminController.verifyOtp);
 router.post("/auth/resend-otp", authLimiter, adminController.resendOtp);
 router.post(
