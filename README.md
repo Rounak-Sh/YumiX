@@ -7,10 +7,10 @@ YuMix is a comprehensive recipe management platform that combines traditional re
 ## 🚀 Live Deployments
 
 | Component       | Status  | URL                                                              |
-| --------------- | ------- | ---------------------------------------------------------------- | --- |
+| --------------- | ------- | ---------------------------------------------------------------- |
 | Backend API     | ✅ Live | [yumix-backend.onrender.com](https://yumix-backend.onrender.com) |
 | Admin Dashboard | ✅ Live | [yumix-admin.vercel.app](https://yumix-admin.vercel.app)         |
-| User Frontend   | ✅ Live | [yumix-users.vercel.app](https://yumix-users.vercel.app)         |     |
+| User Frontend   | ✅ Live | [yumix-users.vercel.app](https://yumix-users.vercel.app)         |     
 
 ### Admin Access
 
