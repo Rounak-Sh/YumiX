@@ -102,6 +102,16 @@ const adminApi = {
       headers: { "Content-Type": "application/json" },
     });
   },
+
+  // Demo login without OTP verification
+  demoLogin: (credentials) => {
+    console.log("Attempting demo login");
+    return axios.post(apiUrl + "/admin/auth/demo-login", credentials, {
+      withCredentials: true,
+      headers: { "Content-Type": "application/json" },
+    });
+  },
+
   verifyOtp: (data) => api.post("/admin/auth/verify-otp", data),
   resetPassword: (data) => api.post("/admin/auth/reset-password", data),
   logout: () => api.post("/admin/auth/logout"),

@@ -19,6 +19,7 @@ export default function Login() {
 
   const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
+  const [demoLoading, setDemoLoading] = useState(false);
   const [forgotPasswordLoading, setForgotPasswordLoading] = useState(false);
   const [error, setError] = useState("");
 
@@ -143,6 +144,46 @@ export default function Login() {
     }
   };
 
+  // Add a new handler for demo login
+  const handleDemoLogin = async () => {
+    if (!isOnline) {
+      showToast.error(
+        "You are offline. Please check your internet connection."
+      );
+      return;
+    }
+
+    setDemoLoading(true);
+    setError("");
+
+    try {
+      // Use the demo credentials
+      const response = await adminApi.demoLogin({
+        email: "demo@yumix.com",
+        password: "demo123",
+      });
+
+      if (response?.data?.success) {
+        // Store the token
+        localStorage.setItem("adminToken", response.data.token);
+
+        // Also store a flag indicating this is a demo session
+        localStorage.setItem("demoMode", "true");
+
+        // Show success message and redirect
+        showToast.success("Demo mode activated");
+        navigate("/dashboard", { replace: true });
+      } else {
+        setError(response?.data?.message || "Demo login failed");
+      }
+    } catch (error) {
+      setError("Demo login failed. Please try again later.");
+      console.error("Demo login error:", error);
+    } finally {
+      setDemoLoading(false);
+    }
+  };
+
   return (
     <div className="min-h-screen flex items-center justify-center bg-[#1E1E1E] px-4 relative">
       <div className="flex w-full max-w-4xl h-[380px] rounded-lg border border-[#333333] shadow-lg overflow-hidden">
@@ -235,11 +276,11 @@ export default function Login() {
                 )}
               </div>
 
-              <div className="flex justify-center mt-6">
+              <div className="flex flex-col space-y-3 mt-6">
                 <button
                   type="submit"
                   disabled={loading || forgotPasswordLoading || !isOnline}
-                  className="w-44 bg-[#252525] text-[#E0E0E0] font-bold uppercase
+                  className="w-full bg-[#252525] text-[#E0E0E0] font-bold uppercase
                            border border-[#333333] rounded-md
                            flex items-center justify-center px-4 py-4 transition-all duration-420
                            before:content-[''] before:bg-white before:h-[1px] 
@@ -258,8 +299,39 @@ export default function Login() {
                     <>Sign in</>
                   )}
                 </button>
+
+                {/* Add Demo Mode Button */}
+                <button
+                  type="button"
+                  onClick={handleDemoLogin}
+                  disabled={demoLoading || !isOnline}
+                  className="w-full bg-[#2A2A2A] text-[#E0E0E0] font-bold 
+                           border border-[#333333] rounded-md
+                           flex items-center justify-center px-4 py-3 transition-colors
+                           hover:bg-[#333333] 
+                           disabled:opacity-50 disabled:cursor-not-allowed">
+                  {demoLoading ? (
+                    <div className="flex justify-center items-center gap-1">
+                      <div className="w-2 h-2 bg-[#bdb4b4] rounded-full animate-[bounce_0.7s_infinite]"></div>
+                      <div className="w-2 h-2 bg-[#bdb4b4] rounded-full animate-[bounce_0.7s_0.1s_infinite]"></div>
+                      <div className="w-2 h-2 bg-[#bdb4b4] rounded-full animate-[bounce_0.7s_0.2s_infinite]"></div>
+                    </div>
+                  ) : (
+                    <>Try Demo Mode</>
+                  )}
+                </button>
               </div>
             </form>
+
+            {error && (
+              <div className="mt-4 text-red-500 text-sm text-center">
+                {error}
+              </div>
+            )}
+
+            <div className="text-center text-xs text-[#666666] mt-4">
+              Demo mode provides limited access with read-only permissions
+            </div>
           </div>
         </div>
       </div>

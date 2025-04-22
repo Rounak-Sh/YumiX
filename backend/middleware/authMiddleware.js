@@ -104,7 +104,33 @@ export const adminProtect = async (req, res, next) => {
     // Verify token
     const decoded = jwt.verify(token, process.env.JWT_SECRET);
 
-    // Get admin from token
+    // Check if this is a demo user with special isDemoUser flag
+    if (decoded.isDemoUser) {
+      console.log("Demo user accessing protected route");
+
+      // Create a mock admin object without database lookup
+      req.admin = {
+        _id: decoded.id || "demo-user-id",
+        name: decoded.name || "Demo User",
+        email: decoded.email || "demo@yumix.com",
+        role: "demo",
+        status: "active",
+        demoAccount: true,
+        preferences: {
+          theme: "dark",
+          dashboardView: "cards",
+          notificationsEnabled: true,
+          emailAlerts: false,
+        },
+      };
+
+      // Also set req.user for consistency
+      req.user = req.admin;
+
+      return next();
+    }
+
+    // For non-demo users, get admin from database
     const admin = await Admin.findById(decoded.id).select("-password");
     if (!admin) {
       return res.status(401).json({

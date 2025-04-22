@@ -91,8 +91,12 @@ const adminSchema = new mongoose.Schema(
     image: String,
     role: {
       type: String,
-      enum: ["admin", "super_admin"],
+      enum: ["admin", "super_admin", "demo"],
       default: "admin",
+    },
+    demoAccount: {
+      type: Boolean,
+      default: false,
     },
     otp: {
       type: String,

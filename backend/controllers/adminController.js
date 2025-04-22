@@ -2616,6 +2616,55 @@ const adminController = {
       });
     }
   },
+
+  // Add this new demo login function
+  demoLogin: async (req, res) => {
+    try {
+      const { email, password } = req.body;
+
+      // Only allow specific demo credentials
+      if (email !== "demo@yumix.com" || password !== "demo123") {
+        return res.status(401).json({
+          success: false,
+          message: "Invalid demo credentials",
+        });
+      }
+
+      // We don't need to validate against the database for demo mode
+      // Just create a special demo token with limited permissions
+
+      // Generate a demo token with fixed demo user ID and role
+      const token = jwt.sign(
+        {
+          id: "demo-user-id",
+          role: "demo",
+          isDemoUser: true,
+          email: "demo@yumix.com",
+          name: "Demo User",
+        },
+        process.env.JWT_SECRET,
+        { expiresIn: "2h" }
+      );
+
+      // Log demo login for monitoring
+      console.log(`Demo login: ${email} at ${new Date().toISOString()}`);
+
+      // Return success with token and demo flag
+      res.status(200).json({
+        success: true,
+        token,
+        isDemo: true,
+        message: "Demo login successful",
+      });
+    } catch (error) {
+      console.error("Demo login error:", error);
+      res.status(500).json({
+        success: false,
+        message: "Demo login failed",
+        error: error.message,
+      });
+    }
+  },
 };
 
 export default adminController;
