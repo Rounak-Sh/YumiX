@@ -106,11 +106,33 @@ const adminApi = {
 
   // Auth
   login: (credentials) => {
-    console.log("Logging in with direct URL");
-    return axios.post(apiUrl + "/admin/auth/login", credentials, {
-      withCredentials: true,
-      headers: { "Content-Type": "application/json" },
+    console.log("Logging in with credentials:", {
+      email: credentials.email,
+      passwordProvided: !!credentials.password,
     });
+    console.log("API URL for login:", apiUrl + "/admin/auth/login");
+
+    return axios
+      .post(apiUrl + "/admin/auth/login", credentials, {
+        withCredentials: true,
+        headers: { "Content-Type": "application/json" },
+      })
+      .then((response) => {
+        console.log("Login API response status:", response.status);
+        console.log(
+          "Login API response contains requireOTP:",
+          response.data?.requireOTP !== undefined
+        );
+        return response;
+      })
+      .catch((error) => {
+        console.error("Login API error:", error.message);
+        console.error(
+          "Login API error details:",
+          error.response?.data || "No response data"
+        );
+        throw error;
+      });
   },
 
   verifyOtp: (data) => api.post("/admin/auth/verify-otp", data),

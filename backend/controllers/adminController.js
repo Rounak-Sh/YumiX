@@ -172,6 +172,7 @@ const adminController = {
       res.status(200).json({
         success: true,
         message: "OTP sent successfully",
+        requireOTP: true,
       });
     } catch (error) {
       console.error("Login error:", error);

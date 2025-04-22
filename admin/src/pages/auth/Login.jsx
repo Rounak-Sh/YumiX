@@ -65,8 +65,16 @@ export default function Login() {
 
       const response = await adminApi.login(formData);
 
+      console.log("Login response:", {
+        success: response?.data?.success,
+        requireOTP: response?.data?.requireOTP,
+        message: response?.data?.message,
+      });
+
       if (response?.data?.success) {
         if (response.data.requireOTP) {
+          console.log("OTP verification required, redirecting to verify-otp");
+
           // Redirect to OTP verification
           navigate("/verify-otp", {
             state: {
@@ -76,6 +84,8 @@ export default function Login() {
             replace: true,
           });
         } else {
+          console.log("No OTP required, proceeding with direct login");
+
           // Handle successful login with token
           const { token } = response.data;
           localStorage.setItem("adminToken", token);
