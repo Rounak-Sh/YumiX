@@ -131,6 +131,8 @@ const adminApi = {
       email: credentials.email,
       passwordProvided: !!credentials.password,
     });
+
+    // The correct endpoint according to adminRoutes.js
     console.log("API URL for login:", apiUrl + "/admin/auth/login");
 
     return axios

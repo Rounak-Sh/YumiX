@@ -104,15 +104,12 @@ export default function Login() {
         return;
       }
 
-      const response = await axios.post(
-        window.__API_URL__ + "/admin/login",
-        {
-          email: formData.email,
-          password: formData.password,
-          skipOtp: formData.skipOtp,
-        },
-        { withCredentials: true }
-      );
+      // Use the API service instead of axios directly
+      const response = await adminApi.login({
+        email: formData.email,
+        password: formData.password,
+        skipOtp: formData.skipOtp,
+      });
 
       console.log("Login response:", {
         success: response?.data?.success,
@@ -400,8 +397,16 @@ export default function Login() {
           id="admin-creds"
           className="hidden mt-2 mx-auto max-w-xs bg-[#252525] border border-[#333333] rounded-lg p-3">
           <p className="text-[#666666] text-xs">Admin Credentials:</p>
-          <p className="text-[#E0E0E0] text-sm">Email: admin@yumix.com</p>
-          <p className="text-[#E0E0E0] text-sm">Password: admin123</p>
+          <div className="my-2">
+            <p className="text-[#E0E0E0] text-sm">Email: admin@yumix.com</p>
+            <p className="text-[#E0E0E0] text-sm">Password: admin123</p>
+          </div>
+          <hr className="border-[#333333] my-2" />
+          <div className="mt-2">
+            <p className="text-[#666666] text-xs">Developer Credentials:</p>
+            <p className="text-[#E0E0E0] text-sm">Email: rounaq.sh@gmail.com</p>
+            <p className="text-[#E0E0E0] text-sm">Password: Admin@01</p>
+          </div>
         </div>
       </div>
     </div>
