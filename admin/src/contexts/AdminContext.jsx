@@ -59,15 +59,16 @@ function AdminProvider({ children }) {
   // Check authentication status
   useEffect(() => {
     const checkAuth = async () => {
-      // Set a timeout to prevent infinite loading
+      // Set a timeout to prevent infinite loading, but give more time for backend connections
       const loadingTimeout = setTimeout(() => {
         console.log(
           "Loading timeout triggered, forcing loading state to false"
         );
         setLoading(false);
-        console.log("Clearing potentially corrupted token due to timeout");
-        localStorage.removeItem("adminToken"); // Clear potentially corrupted token
-      }, 10000); // 10 seconds timeout for loading
+        console.log("NOT clearing token - this is likely causing login issues");
+        // Don't clear the token here as it's causing login issues
+        // localStorage.removeItem("adminToken"); // Clear potentially corrupted token
+      }, 30000); // Increased to 30 seconds to give more time for server to wake up
 
       try {
         const token = localStorage.getItem("adminToken");
@@ -103,7 +104,8 @@ function AdminProvider({ children }) {
         }
 
         // Check if token appears to be valid (simple format check)
-        if (token.length < 20 || !token.includes(".")) {
+        // Modified to be less strict since some valid tokens might be shorter
+        if (!token.includes(".")) {
           console.log("Token appears invalid, clearing and redirecting");
           localStorage.removeItem("adminToken");
           setLoading(false);
