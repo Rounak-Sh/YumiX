@@ -6,11 +6,20 @@ YuMix is a comprehensive recipe management platform that combines traditional re
 
 ## 🚀 Live Deployments
 
-| Component       | Status     | URL                                                              |
-| --------------- | ---------- | ---------------------------------------------------------------- |
-| Backend API     | ✅ Live    | [yumix-backend.onrender.com](https://yumix-backend.onrender.com) |
-| Admin Dashboard | ✅ Live    | [yumix-admin.vercel.app](https://yumix-admin.vercel.app)         |
-| User Frontend   | ✅ Live    | [yumix-users.vercel.app](https://yumix-users.vercel.app)         |                                     |
+| Component       | Status  | URL                                                              |
+| --------------- | ------- | ---------------------------------------------------------------- | --- |
+| Backend API     | ✅ Live | [yumix-backend.onrender.com](https://yumix-backend.onrender.com) |
+| Admin Dashboard | ✅ Live | [yumix-admin.vercel.app](https://yumix-admin.vercel.app)         |
+| User Frontend   | ✅ Live | [yumix-users.vercel.app](https://yumix-users.vercel.app)         |     |
+
+### Admin Access
+
+To access the admin dashboard, use the following demo credentials:
+
+- **Email:** admin@yumix.com
+- **Password:** admin123
+
+Note: These credentials are for demonstration purposes only.
 
 ## ✨ Features
 
@@ -132,6 +141,11 @@ YuMix/
    # Start the development server
    npm run dev
    ```
+
+   Admin dashboard credentials for development:
+
+   - Email: admin@yumix.com
+   - Password: admin123
 
 4. **Set up the frontend**
 
