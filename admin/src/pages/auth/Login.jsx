@@ -23,16 +23,27 @@ export default function Login() {
   const [error, setError] = useState("");
 
   useEffect(() => {
-    const token = localStorage.getItem("adminToken");
+    // Always clear potentially corrupted tokens on login page load
+    // This helps fix cross-browser issues where one browser may have an invalid token
+    const storedToken = localStorage.getItem("adminToken");
 
     console.log("Login page - checking token");
-    console.log("Token exists:", !!token);
+    console.log("Token exists:", !!storedToken);
 
-    // Check if token is potentially valid
-    if (token && token.length > 20) {
+    // Clear localStorage on first visit to ensure clean state
+    if (window.performance && window.performance.navigation.type === 0) {
+      console.log(
+        "This is a fresh page load, clearing potentially stale token"
+      );
+      localStorage.removeItem("adminToken");
+      return;
+    }
+
+    // Only redirect if token appears valid
+    if (storedToken && storedToken.length > 50 && storedToken.includes(".")) {
       console.log("Token looks valid, redirecting to dashboard");
       navigate("/dashboard", { replace: true });
-    } else if (token) {
+    } else if (storedToken) {
       console.log("Invalid token found, clearing it");
       localStorage.removeItem("adminToken");
     }

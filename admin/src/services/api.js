@@ -23,16 +23,22 @@ const api = axios.create({
 api.interceptors.request.use(
   (config) => {
     const token = localStorage.getItem("adminToken");
-    if (token) {
+
+    // Basic token validation before adding to request
+    const isValidToken = token && token.length > 50 && token.includes(".");
+
+    if (isValidToken) {
       // Log token format for debugging (safely trimmed)
       console.log(
         "Auth token format check:",
-        token.length > 10
-          ? `${token.substring(0, 5)}...${token.substring(token.length - 5)}`
-          : "Invalid token format"
+        `${token.substring(0, 5)}...${token.substring(token.length - 5)}`
       );
 
       config.headers.Authorization = `Bearer ${token}`;
+    } else if (token) {
+      // If token exists but isn't valid, clear it to prevent future issues
+      console.log("Invalid token detected in request interceptor, clearing it");
+      localStorage.removeItem("adminToken");
     } else {
       console.log("No admin token found in localStorage");
     }

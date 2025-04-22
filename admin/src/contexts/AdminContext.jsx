@@ -59,60 +59,100 @@ function AdminProvider({ children }) {
   // Check authentication status
   useEffect(() => {
     const checkAuth = async () => {
-      const token = localStorage.getItem("adminToken");
-
-      console.log("AdminContext - Checking authentication");
-      console.log("Current path:", window.location.pathname);
-      console.log("Token exists:", !!token);
-
-      // Auth routes where we don't need to redirect to login
-      const isAuthRoute =
-        window.location.pathname.includes("/login") ||
-        window.location.pathname.includes("/verify-otp") ||
-        window.location.pathname.includes("/reset-password");
-
-      if (!token) {
+      // Set a timeout to prevent infinite loading
+      const loadingTimeout = setTimeout(() => {
         console.log(
-          "No token found, redirecting to login if not on auth route"
+          "Loading timeout triggered, forcing loading state to false"
         );
         setLoading(false);
-
-        if (!isAuthRoute) {
-          console.log("Redirecting to login page");
-          navigate("/login");
-        }
-        return;
-      }
+        localStorage.removeItem("adminToken"); // Clear potentially corrupted token
+      }, 5000); // 5 seconds timeout for loading
 
       try {
+        const token = localStorage.getItem("adminToken");
+
+        console.log("AdminContext - Checking authentication");
+        console.log("Current path:", window.location.pathname);
+        console.log("Token exists:", !!token);
+
+        // Auth routes where we don't need to redirect to login
+        const isAuthRoute =
+          window.location.pathname.includes("/login") ||
+          window.location.pathname.includes("/verify-otp") ||
+          window.location.pathname.includes("/reset-password");
+
+        if (!token) {
+          console.log(
+            "No token found, redirecting to login if not on auth route"
+          );
+          setLoading(false);
+
+          if (!isAuthRoute) {
+            console.log("Redirecting to login page");
+            navigate("/login");
+          }
+          clearTimeout(loadingTimeout); // Clear timeout as we've finished loading
+          return;
+        }
+
+        // Check if token appears to be valid (simple format check)
+        if (token.length < 20 || !token.includes(".")) {
+          console.log("Token appears invalid, clearing and redirecting");
+          localStorage.removeItem("adminToken");
+          setLoading(false);
+
+          if (!isAuthRoute) {
+            navigate("/login");
+          }
+          clearTimeout(loadingTimeout); // Clear timeout
+          return;
+        }
+
         // Only fetch admin data if not on login/verification page
         if (!isAuthRoute) {
           console.log("Fetching admin data for authenticated route");
-          await updateAdminData();
+          try {
+            await updateAdminData();
+            clearTimeout(loadingTimeout); // Clear timeout on success
+          } catch (apiError) {
+            console.error("Error fetching admin data:", apiError);
+
+            // Handle authentication errors
+            if (apiError.response?.status === 401) {
+              console.log("Authentication failed, clearing token");
+              localStorage.removeItem("adminToken");
+              if (!isAuthRoute) navigate("/login");
+            }
+
+            setLoading(false);
+            clearTimeout(loadingTimeout); // Clear timeout on error
+          }
         } else {
           console.log("On auth route, not fetching admin data");
           setLoading(false);
+          clearTimeout(loadingTimeout); // Clear timeout
         }
       } catch (error) {
         console.error("Auth check error:", error);
-
-        if (error.code !== "ERR_NETWORK") {
-          setError(error.message || "Authentication check failed");
-
-          if (error.response && error.response.status === 401) {
-            console.log("401 error - clearing token and redirecting to login");
-            localStorage.removeItem("adminToken");
-
-            if (!isAuthRoute) {
-              navigate("/login");
-            }
-          }
-        }
         setLoading(false);
+
+        // On any error, better to clear token and show login
+        if (!window.location.pathname.includes("/login")) {
+          localStorage.removeItem("adminToken");
+          navigate("/login");
+        }
+
+        clearTimeout(loadingTimeout); // Clear timeout on error
       }
     };
 
     checkAuth();
+
+    // Cleanup function to prevent memory leaks
+    return () => {
+      console.log("AdminContext cleanup");
+      setLoading(false); // Reset loading state when component unmounts
+    };
   }, [navigate]);
 
   const logout = () => {
