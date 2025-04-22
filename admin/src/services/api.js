@@ -99,7 +99,7 @@ const adminApi = {
   },
 
   // Basic authenticated request wrapper
-  authRequest: (method, endpoint, data = null) => {
+  authRequest: (method, endpoint, data = null, additionalConfig = {}) => {
     const token = localStorage.getItem("adminToken");
     const config = {
       headers: {
@@ -107,9 +107,14 @@ const adminApi = {
         "Content-Type": "application/json",
       },
       withCredentials: true,
+      ...additionalConfig,
     };
 
     const url = `${API_URL}${endpoint}`;
+    console.log(
+      `Making ${method.toUpperCase()} request to ${url} with token:`,
+      !!token
+    );
 
     if (method.toLowerCase() === "get") {
       return axios.get(url, config);
@@ -130,24 +135,39 @@ const adminApi = {
   logout: () => adminApi.authRequest("post", "/admin/auth/logout"),
 
   // Users
-  getAllUsers: () => api.get("/admin/users"),
-  getUserDetails: (userId) => api.get(`/admin/users/${userId}`),
-  blockUser: (userId) => api.put(`/admin/users/${userId}/block`),
-  unblockUser: (userId) => api.put(`/admin/users/${userId}/unblock`),
-  searchUsers: (params) => api.get("/admin/users/search", { params }),
+  getAllUsers: () => adminApi.authRequest("get", "/admin/users"),
+  getUserDetails: (userId) =>
+    adminApi.authRequest("get", `/admin/users/${userId}`),
+  blockUser: (userId) =>
+    adminApi.authRequest("put", `/admin/users/${userId}/block`),
+  unblockUser: (userId) =>
+    adminApi.authRequest("put", `/admin/users/${userId}/unblock`),
+  searchUsers: (params) =>
+    adminApi.authRequest(
+      "get",
+      `/admin/users/search${
+        params ? `?${new URLSearchParams(params).toString()}` : ""
+      }`
+    ),
 
   // Support
-  getSupportTickets: () => api.get("/support/admin/tickets"),
+  getSupportTickets: () =>
+    adminApi.authRequest("get", "/support/admin/tickets"),
   getSupportTicketDetails: (ticketId) =>
-    api.get(`/support/admin/tickets/${ticketId}`),
+    adminApi.authRequest("get", `/support/admin/tickets/${ticketId}`),
   respondToSupportTicket: (ticketId, data) =>
-    api.post(`/support/admin/tickets/${ticketId}/reply`, data),
+    adminApi.authRequest(
+      "post",
+      `/support/admin/tickets/${ticketId}/reply`,
+      data
+    ),
   updateSupportTicket: (ticketId, data) =>
-    api.put(`/support/admin/tickets/${ticketId}`, data),
+    adminApi.authRequest("put", `/support/admin/tickets/${ticketId}`, data),
 
+  // Uses the api instance without Authorization header
   getUserGrowthData: async () => {
     try {
-      return await api.get("/admin/dashboard/user-growth");
+      return await adminApi.authRequest("get", "/admin/dashboard/user-growth");
     } catch (error) {
       return {
         data: {
@@ -161,7 +181,10 @@ const adminApi = {
 
   getRecipePopularityData: async () => {
     try {
-      return await api.get("/admin/dashboard/recipe-popularity");
+      return await adminApi.authRequest(
+        "get",
+        "/admin/dashboard/recipe-popularity"
+      );
     } catch (error) {
       return {
         data: {
@@ -175,7 +198,10 @@ const adminApi = {
 
   getSubscriptionData: async () => {
     try {
-      return await api.get("/admin/dashboard/subscriptions");
+      return await adminApi.authRequest(
+        "get",
+        "/admin/dashboard/subscriptions"
+      );
     } catch (error) {
       return {
         data: {
@@ -189,7 +215,10 @@ const adminApi = {
 
   getActivityMetricsData: async () => {
     try {
-      return await api.get("/admin/dashboard/activity-metrics");
+      return await adminApi.authRequest(
+        "get",
+        "/admin/dashboard/activity-metrics"
+      );
     } catch (error) {
       return {
         data: {
@@ -204,8 +233,7 @@ const adminApi = {
   // OTP
   resendOtp: async (data) => {
     try {
-      const response = await api.post("/admin/auth/resend-otp", data);
-      return response;
+      return await adminApi.authRequest("post", "/admin/auth/resend-otp", data);
     } catch (error) {
       throw error;
     }
@@ -213,8 +241,11 @@ const adminApi = {
 
   verifyResetOtp: async (data) => {
     try {
-      const response = await api.post("/admin/auth/verify-reset-otp", data);
-      return response;
+      return await adminApi.authRequest(
+        "post",
+        "/admin/auth/verify-reset-otp",
+        data
+      );
     } catch (error) {
       throw error;
     }
@@ -222,51 +253,65 @@ const adminApi = {
 
   // Recipes
   searchRecipesByIngredients: (ingredients) =>
-    api.post("/admin/recipes/search", { ingredients: ingredients.trim() }),
+    adminApi.authRequest("post", "/admin/recipes/search", {
+      ingredients: ingredients.trim(),
+    }),
+
   getRecipeVideo: async (recipeName) => {
     try {
-      const response = await api.get(
+      return await adminApi.authRequest(
+        "get",
         `/admin/recipes/video?query=${encodeURIComponent(recipeName)}`
       );
-      return response;
     } catch (error) {
       return { data: { success: false, videoId: null } };
     }
   },
+
   markRecipeAsFeatured: (recipeId, recipeData) =>
-    api.put(`/admin/recipes/${recipeId}/feature`, recipeData),
+    adminApi.authRequest(
+      "put",
+      `/admin/recipes/${recipeId}/feature`,
+      recipeData
+    ),
+
   removeFeaturedRecipe: (recipeId) =>
-    api.delete(`/admin/recipes/${recipeId}/unfeature`),
-  getFeaturedRecipes: () => api.get("/admin/recipes/featured"),
+    adminApi.authRequest("delete", `/admin/recipes/${recipeId}/unfeature`),
+
+  getFeaturedRecipes: () =>
+    adminApi.authRequest("get", "/admin/recipes/featured"),
 
   // Subscriptions
-  getSubscribedUsers: () => api.get("/admin/subscriptions/users"),
+  getSubscribedUsers: () =>
+    adminApi.authRequest("get", "/admin/subscriptions/users"),
 
   // Payments
-  getPaymentHistory: () => api.get("/admin/payments"),
-  getPaymentDetails: (paymentId) => api.get(`/admin/payments/${paymentId}`),
+  getPaymentHistory: () => adminApi.authRequest("get", "/admin/payments"),
+
+  getPaymentDetails: (paymentId) =>
+    adminApi.authRequest("get", `/admin/payments/${paymentId}`),
 
   // Reports
   generateReport: (type, params = {}) => {
     const queryString = new URLSearchParams(params).toString();
-    const url = queryString
-      ? `/admin/reports/${type}?${queryString}`
-      : `/admin/reports/${type}`;
-    return api.get(url, { responseType: "blob" });
+    const url = `/admin/reports/${type}${queryString ? `?${queryString}` : ""}`;
+    return adminApi.authRequest("get", url, null, { responseType: "blob" });
   },
 
   // Subscription Plans
-  getAllPlans: () => api.get("/admin/plans"),
-  createPlan: (data) => api.post("/admin/plans", data),
-  updatePlan: (planId, data) => api.put(`/admin/plans/${planId}`, data),
-  deletePlan: (planId) => api.delete(`/admin/plans/${planId}`),
-  initializeDefaultPlans: () => api.post("/admin/plans/initialize"),
+  getAllPlans: () => adminApi.authRequest("get", "/admin/plans"),
+  createPlan: (data) => adminApi.authRequest("post", "/admin/plans", data),
+  updatePlan: (planId, data) =>
+    adminApi.authRequest("put", `/admin/plans/${planId}`, data),
+  deletePlan: (planId) =>
+    adminApi.authRequest("delete", `/admin/plans/${planId}`),
+  initializeDefaultPlans: () =>
+    adminApi.authRequest("post", "/admin/plans/initialize"),
 
   // Profile
   updateProfile: async (data) => {
     try {
-      const response = await api.put("/admin/profile", data);
-      return response;
+      return await adminApi.authRequest("put", "/admin/profile", data);
     } catch (error) {
       throw error;
     }
@@ -274,12 +319,15 @@ const adminApi = {
 
   updateProfilePicture: async (formData) => {
     try {
-      const response = await api.put("/admin/profile/picture", formData, {
+      const token = localStorage.getItem("adminToken");
+      // Use axios directly for multipart/form-data
+      return await axios.put(`${API_URL}/admin/profile/picture`, formData, {
         headers: {
+          Authorization: token ? `Bearer ${token}` : "",
           "Content-Type": "multipart/form-data",
         },
+        withCredentials: true,
       });
-      return response;
     } catch (error) {
       throw error;
     }
@@ -292,8 +340,11 @@ const adminApi = {
       if (newEmail && type === "email") {
         payload.newEmail = newEmail;
       }
-      const response = await api.post("/admin/profile/update-otp", payload);
-      return response;
+      return await adminApi.authRequest(
+        "post",
+        "/admin/profile/update-otp",
+        payload
+      );
     } catch (error) {
       throw error;
     }
@@ -301,25 +352,29 @@ const adminApi = {
 
   updateProfileWithOTP: async (data) => {
     try {
-      const response = await api.put("/admin/profile/update-with-otp", data);
-      return response;
+      return await adminApi.authRequest(
+        "put",
+        "/admin/profile/update-with-otp",
+        data
+      );
     } catch (error) {
       throw error;
     }
   },
 
-  updatePreferences: (data) => api.put("/admin/preferences", data),
+  updatePreferences: (data) =>
+    adminApi.authRequest("put", "/admin/preferences", data),
 
   // Notifications
-  getNotifications: () => api.get("/admin/notifications"),
-  markNotificationAsRead: (id) => api.put(`/admin/notifications/${id}/read`),
+  getNotifications: () => adminApi.authRequest("get", "/admin/notifications"),
+  markNotificationAsRead: (id) =>
+    adminApi.authRequest("put", `/admin/notifications/${id}/read`),
   markAllNotificationsAsRead: () =>
-    api.put("/admin/notifications/mark-all-read"),
-  deleteNotification: (id) => api.delete(`/admin/notifications/${id}`),
-
-  clearOldNotifications: (all = true) => {
-    return api.delete(`/admin/notifications/clear?all=${all}`);
-  },
+    adminApi.authRequest("put", "/admin/notifications/mark-all-read"),
+  deleteNotification: (id) =>
+    adminApi.authRequest("delete", `/admin/notifications/${id}`),
+  clearOldNotifications: (all = true) =>
+    adminApi.authRequest("delete", `/admin/notifications/clear?all=${all}`),
 };
 
 export default adminApi;
