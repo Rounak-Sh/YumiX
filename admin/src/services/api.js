@@ -159,9 +159,10 @@ const adminApi = {
     return api
       .post("/admin/auth/verify-otp", data)
       .then((response) => {
-        console.log("OTP verification successful, response:", {
+        console.log("OTP verification response:", {
           success: response.data?.success,
           hasToken: !!response.data?.token,
+          hasAdmin: !!response.data?.admin,
         });
 
         // Store token if present in response

@@ -254,9 +254,13 @@ const adminController = {
 
         // Generate JWT token
         const adminToken = jwt.sign(
-          { id: admin._id, email: admin.email, role: "admin" },
+          {
+            id: admin._id.toString(),
+            email: admin.email,
+            role: admin.role || "admin",
+          },
           process.env.JWT_SECRET,
-          { expiresIn: process.env.JWT_EXPIRES_IN }
+          { expiresIn: process.env.JWT_EXPIRES_IN || "24h" }
         );
 
         // Update last login time
@@ -266,16 +270,14 @@ const adminController = {
         return res.status(200).json({
           success: true,
           message: "OTP verification bypassed. Login successful.",
-          data: {
-            token: adminToken,
-            admin: {
-              id: admin._id,
-              name: admin.name,
-              email: admin.email,
-              role: admin.role,
-              permissions: admin.permissions,
-              lastLoginAt: admin.lastLoginAt,
-            },
+          token: adminToken,
+          admin: {
+            id: admin._id,
+            name: admin.name,
+            email: admin.email,
+            role: admin.role,
+            permissions: admin.permissions,
+            lastLoginAt: admin.lastLoginAt,
           },
         });
       }
@@ -335,13 +337,14 @@ const adminController = {
       // Generate JWT token
       const tokenPayload = {
         id: admin._id.toString(),
+        email: admin.email,
         role: admin.role || "admin",
       };
 
       console.log("Creating JWT token with payload:", tokenPayload);
 
       const token = jwt.sign(tokenPayload, process.env.JWT_SECRET, {
-        expiresIn: "24h",
+        expiresIn: process.env.JWT_EXPIRES_IN || "24h",
       });
 
       console.log("JWT token generated successfully");
@@ -351,10 +354,22 @@ const adminController = {
         `${token.substring(0, 10)}...${token.substring(token.length - 10)}`
       );
 
+      // Update last login time
+      admin.lastLoginAt = new Date();
+      await admin.save();
+
       res.status(200).json({
         success: true,
         message: "OTP verified successfully",
         token,
+        admin: {
+          id: admin._id,
+          name: admin.name,
+          email: admin.email,
+          role: admin.role,
+          permissions: admin.permissions,
+          lastLoginAt: admin.lastLoginAt,
+        },
       });
     } catch (error) {
       console.error("OTP verification error:", error);

@@ -65,8 +65,9 @@ function AdminProvider({ children }) {
           "Loading timeout triggered, forcing loading state to false"
         );
         setLoading(false);
+        console.log("Clearing potentially corrupted token due to timeout");
         localStorage.removeItem("adminToken"); // Clear potentially corrupted token
-      }, 5000); // 5 seconds timeout for loading
+      }, 10000); // 10 seconds timeout for loading
 
       try {
         const token = localStorage.getItem("adminToken");
@@ -74,6 +75,12 @@ function AdminProvider({ children }) {
         console.log("AdminContext - Checking authentication");
         console.log("Current path:", window.location.pathname);
         console.log("Token exists:", !!token);
+        if (token) {
+          console.log(
+            "Token format check:",
+            `${token.substring(0, 5)}...${token.substring(token.length - 5)}`
+          );
+        }
 
         // Auth routes where we don't need to redirect to login
         const isAuthRoute =

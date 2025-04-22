@@ -100,6 +100,7 @@ export default function Login() {
         success: response?.data?.success,
         requireOTP: response?.data?.requireOTP,
         message: response?.data?.message,
+        hasToken: !!response?.data?.token,
       });
 
       if (response?.data?.success) {
