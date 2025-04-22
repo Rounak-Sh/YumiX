@@ -1,7 +1,7 @@
 import axios from "axios";
 
 // Simple direct approach - use the Render URL directly
-const apiUrl = "https://yumix-backend.onrender.com/api/v1";
+const apiUrl = "https://yumix-backend.onrender.com/api";
 
 console.log("Using API URL:", apiUrl);
 
@@ -103,7 +103,7 @@ const adminApi = {
       // Try with the admin prefix as a fallback
       try {
         const adminResponse = await axios.get(
-          "https://yumix-backend.onrender.com/api/v1/admin/health"
+          "https://yumix-backend.onrender.com/api/admin/health"
         );
         console.log("Health check succeeded with admin URL");
         return adminResponse;
@@ -132,7 +132,7 @@ const adminApi = {
       passwordProvided: !!credentials.password,
     });
 
-    // The correct endpoint according to adminRoutes.js
+    // Use the original admin login endpoint without v1
     console.log("API URL for login:", apiUrl + "/admin/auth/login");
 
     return axios
