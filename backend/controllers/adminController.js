@@ -146,13 +146,52 @@ const adminController = {
 
       console.log("\nPassword verified successfully");
 
+      // Check if OTP verification is disabled (for demo/showcase purposes)
+      const skipOtpVerification = process.env.SKIP_ADMIN_OTP === "true";
+      console.log("Skip OTP verification:", skipOtpVerification);
+
+      if (skipOtpVerification) {
+        console.log("OTP verification bypassed (demo mode)");
+
+        // Generate JWT token
+        const tokenPayload = {
+          id: admin._id.toString(),
+          role: admin.role || "admin",
+        };
+
+        console.log("Creating JWT token with payload:", tokenPayload);
+
+        const token = jwt.sign(tokenPayload, process.env.JWT_SECRET, {
+          expiresIn: "24h",
+        });
+
+        console.log("JWT token generated successfully");
+        console.log("Token length:", token.length);
+
+        // Return successful response with token
+        return res.status(200).json({
+          success: true,
+          message: "Login successful (OTP verification bypassed)",
+          token,
+        });
+      }
+
+      // Normal OTP flow (when OTP verification is enabled)
       // Generate OTP
       const otp = Math.floor(100000 + Math.random() * 900000).toString();
+      console.log("Generated OTP:", otp);
 
       // Save OTP to admin document
       admin.otp = otp;
       admin.otpExpiry = new Date(Date.now() + 5 * 60 * 1000); // 5 minutes
       await admin.save();
+
+      // Verify OTP was saved
+      const updatedAdmin = await Admin.findOne({ email }).select(
+        "otp otpExpiry"
+      );
+      console.log("Saved OTP:", updatedAdmin.otp);
+      console.log("Saved OTP Expiry:", updatedAdmin.otpExpiry);
 
       // Send OTP email
       await transporter.sendMail({

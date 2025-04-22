@@ -104,15 +104,22 @@ export default function Login() {
             replace: true,
           });
         } else {
-          console.log("No OTP required, proceeding with direct login");
+          console.log(
+            "No OTP required (bypass mode), proceeding with direct login"
+          );
 
           // Handle successful login with token
-          const { token } = response.data;
-          localStorage.setItem("adminToken", token);
+          if (response.data.token) {
+            console.log("Token received, storing and redirecting to dashboard");
+            localStorage.setItem("adminToken", response.data.token);
 
-          // Show success message and redirect
-          showToast.success("Login successful");
-          navigate("/");
+            // Show success message and redirect
+            showToast.success(response.data.message || "Login successful");
+            navigate("/dashboard", { replace: true });
+          } else {
+            console.error("No token received in bypass mode");
+            setError("Authentication error: No token received");
+          }
         }
       } else {
         setError(response?.data?.message || "Login failed");
