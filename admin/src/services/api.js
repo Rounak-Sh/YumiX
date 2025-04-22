@@ -92,20 +92,35 @@ const adminApi = {
   // Health check
   checkHealth: async () => {
     try {
-      const response = await api.get("/health");
+      // Try the direct health endpoint first
+      const response = await axios.get(
+        "https://yumix-backend.onrender.com/health"
+      );
       return response;
     } catch (error) {
       console.error("Health check failed:", error.message);
-      // Try with the base URL without the /admin prefix as a fallback
+
+      // Try with the admin prefix as a fallback
       try {
-        const baseUrlResponse = await axios.get(
-          apiUrl.replace("/admin", "") + "/health"
+        const adminResponse = await axios.get(
+          "https://yumix-backend.onrender.com/api/v1/admin/health"
         );
-        console.log("Health check succeeded with alternate URL");
-        return baseUrlResponse;
-      } catch (secondError) {
-        console.error("All health check attempts failed");
-        throw error; // Throw the original error
+        console.log("Health check succeeded with admin URL");
+        return adminResponse;
+      } catch (adminError) {
+        console.error("Admin health check failed:", adminError.message);
+
+        // Try a basic ping to the root URL to see if the server is up at all
+        try {
+          const pingResponse = await axios.get(
+            "https://yumix-backend.onrender.com/"
+          );
+          console.log("Basic server ping succeeded");
+          return { data: { success: true, message: "Server is reachable" } };
+        } catch (pingError) {
+          console.error("All health check attempts failed");
+          throw error; // Throw the original error
+        }
       }
     }
   },

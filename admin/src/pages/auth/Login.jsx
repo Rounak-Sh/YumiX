@@ -25,6 +25,24 @@ export default function Login() {
   const [forgotPasswordLoading, setForgotPasswordLoading] = useState(false);
   const [error, setError] = useState("");
 
+  // Add server status state
+  const [serverStatus, setServerStatus] = useState("checking");
+
+  // Check backend connectivity on load
+  useEffect(() => {
+    const checkBackendStatus = async () => {
+      try {
+        await adminApi.checkHealth();
+        setServerStatus("online");
+      } catch (error) {
+        setServerStatus("offline");
+        console.error("Backend connection failed:", error);
+      }
+    };
+
+    checkBackendStatus();
+  }, []);
+
   useEffect(() => {
     // Always clear potentially corrupted tokens on login page load
     // This helps fix cross-browser issues where one browser may have an invalid token
@@ -198,6 +216,34 @@ export default function Login() {
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-[#1E1E1E] px-4 relative">
+      {/* Show server status indicator */}
+      <div className="absolute top-4 right-4 flex items-center">
+        <span className="text-sm text-gray-400 mr-2">Server Status:</span>
+        <span
+          className={`w-3 h-3 rounded-full ${
+            serverStatus === "online"
+              ? "bg-green-500"
+              : serverStatus === "offline"
+              ? "bg-red-500"
+              : "bg-yellow-500"
+          }`}></span>
+        <span className="text-sm ml-2 text-gray-400">
+          {serverStatus === "online"
+            ? "Connected"
+            : serverStatus === "offline"
+            ? "Offline"
+            : "Checking..."}
+        </span>
+      </div>
+
+      {/* Info message when server is offline */}
+      {serverStatus === "offline" && (
+        <div className="absolute top-12 right-4 text-yellow-300 text-xs max-w-xs text-right">
+          The backend server may be in sleep mode. It will wake up after the
+          first request, please try again in a moment.
+        </div>
+      )}
+
       <div className="flex w-full max-w-4xl h-[380px] rounded-lg border border-[#333333] shadow-lg overflow-hidden">
         {/* Logo Section */}
         <div className="hidden md:flex w-1/2 bg-[#252525] border-r border-[#333333] items-center justify-center">
