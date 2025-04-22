@@ -172,7 +172,6 @@ const adminController = {
       res.status(200).json({
         success: true,
         message: "OTP sent successfully",
-        requireOTP: true,
       });
     } catch (error) {
       console.error("Login error:", error);
@@ -188,8 +187,13 @@ const adminController = {
     try {
       const { email, otp } = req.body;
 
+      console.log("\n=== OTP Verification Attempt ===");
+      console.log("Email:", email);
+      console.log("OTP Provided:", otp);
+
       const admin = await Admin.findOne({ email });
       if (!admin) {
+        console.log("Admin not found for email:", email);
         return res.status(404).json({
           success: false,
           message: "Admin not found",
@@ -197,7 +201,7 @@ const adminController = {
       }
 
       // Check if OTP exists and is valid
-      if (!admin.otp) {
+      if (!admin.otp || !admin.otpExpiry) {
         return res.status(400).json({
           success: false,
           message: "No OTP was sent. Please request a new one.",
@@ -205,7 +209,7 @@ const adminController = {
       }
 
       // Check if OTP has expired
-      if (!admin.otpExpiry || Date.now() > admin.otpExpiry.getTime()) {
+      if (Date.now() > admin.otpExpiry.getTime()) {
         return res.status(400).json({
           success: false,
           message: "OTP has expired. Please request a new one.",
