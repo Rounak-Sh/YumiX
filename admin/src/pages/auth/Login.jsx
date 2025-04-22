@@ -346,14 +346,10 @@ export default function Login() {
         <div
           id="admin-creds"
           className="hidden mt-2 mx-auto max-w-xs bg-[#252525] border border-[#333333] rounded-lg p-3">
-          <p className="text-[#666666] text-xs">Demo Admin Credentials:</p>
           <div className="my-2">
             <p className="text-[#E0E0E0] text-sm">Email: admin@yumix.com</p>
             <p className="text-[#E0E0E0] text-sm">Password: admin123</p>
           </div>
-          <p className="text-[#666666] text-xs mt-2">
-            Note: These are demo credentials for testing purposes only.
-          </p>
         </div>
       </div>
     </div>
