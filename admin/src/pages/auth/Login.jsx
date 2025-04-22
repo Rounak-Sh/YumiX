@@ -133,8 +133,50 @@ export default function Login() {
 
         // Handle successful login with token
         if (response.data.token) {
-          console.log("Token received, storing and redirecting to dashboard");
+          console.log(
+            "Token received, logging token format:",
+            response.data.token.substring(0, 10) +
+              "..." +
+              response.data.token.substring(response.data.token.length - 10)
+          );
+
+          // Store the token
           localStorage.setItem("adminToken", response.data.token);
+
+          // Verify token was stored
+          const storedToken = localStorage.getItem("adminToken");
+          console.log("Stored token check:", !!storedToken);
+
+          if (storedToken !== response.data.token) {
+            console.error("Token storage failed - mismatch!");
+          }
+
+          // Create a test request to verify the token works
+          try {
+            const testUrl =
+              "https://yumix-backend.onrender.com/api/admin/dashboard/stats";
+            console.log("Testing token with request to:", testUrl);
+
+            const testResponse = await axios.get(testUrl, {
+              headers: {
+                Authorization: `Bearer ${response.data.token}`,
+                "Content-Type": "application/json",
+              },
+              withCredentials: true,
+            });
+
+            console.log(
+              "Test request succeeded:",
+              testResponse.status,
+              !!testResponse.data
+            );
+          } catch (testError) {
+            console.error(
+              "Test request with token failed:",
+              testError.response?.status,
+              testError.message
+            );
+          }
 
           // Show success message and redirect
           showToast.success("Login successful");

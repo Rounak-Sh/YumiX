@@ -120,6 +120,50 @@ function AdminProvider({ children }) {
     };
   }, [navigate]);
 
+  // Add token debugging
+  useEffect(() => {
+    const token = localStorage.getItem("adminToken");
+    console.log("AdminContext - Current token exists:", !!token);
+
+    if (token) {
+      try {
+        // Inspect the token format
+        console.log(
+          "Token format check:",
+          token.substring(0, 20) + "..." + token.substring(token.length - 20)
+        );
+
+        // Try to decode parts of the token to see if it's a valid JWT
+        const parts = token.split(".");
+        console.log("Token has", parts.length, "parts");
+
+        if (parts.length === 3) {
+          // Looks like a JWT, try to decode header
+          try {
+            const header = JSON.parse(atob(parts[0]));
+            console.log("Token header:", header);
+
+            // Try to decode payload
+            const payload = JSON.parse(atob(parts[1]));
+            console.log("Token payload contains:", Object.keys(payload));
+            console.log(
+              "Token expires at:",
+              new Date(payload.exp * 1000).toLocaleString()
+            );
+          } catch (e) {
+            console.log("Failed to decode token parts:", e.message);
+          }
+        } else {
+          console.log(
+            "Token doesn't appear to be a valid JWT (should have 3 parts)"
+          );
+        }
+      } catch (e) {
+        console.log("Error inspecting token:", e.message);
+      }
+    }
+  }, []);
+
   const logout = () => {
     localStorage.removeItem("adminToken");
     setAdmin(null);

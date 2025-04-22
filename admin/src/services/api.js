@@ -101,20 +101,39 @@ const adminApi = {
   // Basic authenticated request wrapper
   authRequest: (method, endpoint, data = null, additionalConfig = {}) => {
     const token = localStorage.getItem("adminToken");
+
+    // Debug token
+    console.log(
+      "Token found for request:",
+      token ? `[exists: ${token.length} chars]` : "NO TOKEN"
+    );
+    if (token) {
+      console.log(
+        "Token preview:",
+        `${token.substring(0, 10)}...${token.substring(token.length - 10)}`
+      );
+    }
+
+    // Create headers with proper Authorization format
+    const headers = {
+      "Content-Type": "application/json",
+    };
+
+    if (token) {
+      headers.Authorization = `Bearer ${token}`;
+      console.log("Authorization header set correctly");
+    } else {
+      console.warn("No token available for request to:", endpoint);
+    }
+
     const config = {
-      headers: {
-        Authorization: token ? `Bearer ${token}` : "",
-        "Content-Type": "application/json",
-      },
+      headers,
       withCredentials: true,
       ...additionalConfig,
     };
 
     const url = `${API_URL}${endpoint}`;
-    console.log(
-      `Making ${method.toUpperCase()} request to ${url} with token:`,
-      !!token
-    );
+    console.log(`Making ${method.toUpperCase()} request to ${url}`);
 
     if (method.toLowerCase() === "get") {
       return axios.get(url, config);
