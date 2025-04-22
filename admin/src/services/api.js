@@ -19,10 +19,22 @@ const api = axios.create({
   timeout: 10000,
 });
 
-// Add token to requests
+// Add a debug log to always show the actual URL being used for login
+function filterURL(url) {
+  // This function ensures we remove any duplicate or incorrect path segments
+  return url.replace(/\/+/g, "/").replace(/api\/v1/g, "api");
+}
+
+// Middleware to clean up any URL before it's used
 api.interceptors.request.use(
   (config) => {
     const token = localStorage.getItem("adminToken");
+
+    // Clean up URL to remove any v1 references
+    if (config.url) {
+      config.url = filterURL(config.url);
+      console.log("Final URL being used:", config.baseURL + config.url);
+    }
 
     // Basic token validation before adding to request
     const isValidToken = token && token.length > 50 && token.includes(".");
@@ -132,11 +144,12 @@ const adminApi = {
       passwordProvided: !!credentials.password,
     });
 
-    // Use the original admin login endpoint without v1
-    console.log("API URL for login:", apiUrl + "/admin/auth/login");
+    // Fix the URL by ensuring no v1 is present
+    const loginUrl = filterURL(`${apiUrl}/admin/auth/login`);
+    console.log("CLEAN API URL for login:", loginUrl);
 
     return axios
-      .post(apiUrl + "/admin/auth/login", credentials, {
+      .post(loginUrl, credentials, {
         withCredentials: true,
         headers: { "Content-Type": "application/json" },
       })

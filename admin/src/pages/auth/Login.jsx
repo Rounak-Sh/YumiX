@@ -30,6 +30,14 @@ export default function Login() {
 
   // Check backend connectivity on load
   useEffect(() => {
+    // Add debug logging for API URL
+    console.log("DIRECT CHECK - window.__API_URL__:", window.__API_URL__);
+    console.log(
+      "DIRECT CHECK - adminApi baseURL:",
+      adminApi?.defaults?.baseURL
+    );
+
+    // Check backend connectivity on load
     const checkBackendStatus = async () => {
       try {
         await adminApi.checkHealth();
