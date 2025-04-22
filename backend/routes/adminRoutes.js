@@ -2,7 +2,6 @@ import express from "express";
 import { adminProtect } from "../middleware/authMiddleware.js";
 import adminController from "../controllers/adminController.js";
 import { authLimiter } from "../middleware/rateLimitMiddleware.js";
-import { demoRestriction } from "../middleware/demoRestrictionMiddleware.js";
 import { Admin } from "../models/index.js";
 import { upload, handleUploadErrors } from "../middleware/uploadMiddleware.js";
 import {
@@ -127,9 +126,6 @@ router.post("/auth/reset-admin", async (req, res) => {
 
 // Protected routes - everything below this requires authentication
 router.use(adminProtect);
-
-// Apply demo restriction to all protected routes
-router.use(demoRestriction);
 
 // Profile routes
 router.put("/profile", adminController.updateProfile);
