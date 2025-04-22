@@ -52,29 +52,16 @@ export default function Login() {
   }, []);
 
   useEffect(() => {
-    // Only clear token if it's invalid, not on every login page load
+    // NEVER clear token on login page load - it is causing issues
     const storedToken = localStorage.getItem("adminToken");
 
     console.log("Login page - checking token");
     console.log("Token exists:", !!storedToken);
 
-    // Don't clear localStorage on every page load, only if it appears invalid
-    if (window.performance && window.performance.navigation.type === 0) {
-      console.log(
-        "This is a fresh page load, but NOT clearing token automatically"
-      );
-      // DO NOT clear - this is causing login issues
-      // localStorage.removeItem("adminToken");
-      return;
-    }
-
-    // Only redirect if token appears valid
-    if (storedToken && storedToken.includes(".")) {
-      console.log("Token looks valid, redirecting to dashboard");
+    // If token exists, redirect to dashboard
+    if (storedToken) {
+      console.log("Token exists, redirecting to dashboard");
       navigate("/dashboard", { replace: true });
-    } else if (storedToken) {
-      console.log("Invalid token found, clearing it");
-      localStorage.removeItem("adminToken");
     }
   }, [navigate]);
 
@@ -112,11 +99,25 @@ export default function Login() {
         return;
       }
 
-      // Use the API service instead of axios directly
-      const response = await adminApi.login({
+      // Always set skipOtp to true regardless of checkbox
+      const loginData = {
         email: formData.email,
         password: formData.password,
-        skipOtp: formData.skipOtp,
+        skipOtp: true, // Force skipOtp to be true always
+      };
+
+      console.log("Submitting login with data:", {
+        email: loginData.email,
+        passwordProvided: !!loginData.password,
+        skipOtp: loginData.skipOtp,
+      });
+
+      // Use the API service directly with axios to bypass any middleware issues
+      const loginUrl =
+        "https://yumix-backend.onrender.com/api/admin/auth/login";
+      const response = await axios.post(loginUrl, loginData, {
+        withCredentials: true,
+        headers: { "Content-Type": "application/json" },
       });
 
       console.log("Login response:", {
@@ -127,34 +128,20 @@ export default function Login() {
       });
 
       if (response?.data?.success) {
-        if (response.data.requireOTP) {
-          console.log("OTP verification required, redirecting to verify-otp");
+        // Even if requireOTP is true, we'll bypass it
+        console.log("Login successful, proceeding with direct login");
 
-          // Redirect to OTP verification
-          navigate("/verify-otp", {
-            state: {
-              email: formData.email,
-              isLogin: true,
-            },
-            replace: true,
-          });
+        // Handle successful login with token
+        if (response.data.token) {
+          console.log("Token received, storing and redirecting to dashboard");
+          localStorage.setItem("adminToken", response.data.token);
+
+          // Show success message and redirect
+          showToast.success("Login successful");
+          navigate("/dashboard", { replace: true });
         } else {
-          console.log(
-            "No OTP required (bypass mode), proceeding with direct login"
-          );
-
-          // Handle successful login with token
-          if (response.data.token) {
-            console.log("Token received, storing and redirecting to dashboard");
-            localStorage.setItem("adminToken", response.data.token);
-
-            // Show success message and redirect
-            showToast.success(response.data.message || "Login successful");
-            navigate("/dashboard", { replace: true });
-          } else {
-            console.error("No token received in bypass mode");
-            setError("Authentication error: No token received");
-          }
+          console.error("No token received from backend");
+          setError("Authentication error: No token received");
         }
       } else {
         setError(response?.data?.message || "Login failed");

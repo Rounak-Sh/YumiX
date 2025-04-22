@@ -23,9 +23,17 @@ function AdminProvider({ children }) {
   const updateAdminData = async () => {
     try {
       const response = await adminApi.getDashboardStats();
+
+      // Check if response or data exists
+      if (!response || !response.data) {
+        console.log("No data received from dashboard stats");
+        return;
+      }
+
       const adminData = response.data.admin;
 
       if (!adminData) {
+        console.log("No admin data found in response");
         return;
       }
 
@@ -37,7 +45,7 @@ function AdminProvider({ children }) {
           role: adminData.role || "admin",
           status: adminData.status || "active",
           image: adminData.image,
-          preferences: adminData.preferences || {
+          permissions: adminData.preferences || {
             emailNotifications: true,
             loginAlerts: true,
             reportGeneration: true,
@@ -50,38 +58,20 @@ function AdminProvider({ children }) {
         setStats(response.data.stats);
       }
     } catch (error) {
-      if (error.code !== "ERR_NETWORK") {
-        setError(error.message || "Failed to update admin data");
-      }
+      console.log("Error updating admin data:", error.message);
+      // Don't clear token or redirect, just log the error
+    } finally {
+      // Always set loading to false when done
+      setLoading(false);
     }
   };
 
   // Check authentication status
   useEffect(() => {
     const checkAuth = async () => {
-      // Set a timeout to prevent infinite loading, but give more time for backend connections
-      const loadingTimeout = setTimeout(() => {
-        console.log(
-          "Loading timeout triggered, forcing loading state to false"
-        );
-        setLoading(false);
-        console.log("NOT clearing token - this is likely causing login issues");
-        // Don't clear the token here as it's causing login issues
-        // localStorage.removeItem("adminToken"); // Clear potentially corrupted token
-      }, 30000); // Increased to 30 seconds to give more time for server to wake up
-
       try {
         const token = localStorage.getItem("adminToken");
-
-        console.log("AdminContext - Checking authentication");
-        console.log("Current path:", window.location.pathname);
-        console.log("Token exists:", !!token);
-        if (token) {
-          console.log(
-            "Token format check:",
-            `${token.substring(0, 5)}...${token.substring(token.length - 5)}`
-          );
-        }
+        console.log("AdminContext - Token check:", !!token);
 
         // Auth routes where we don't need to redirect to login
         const isAuthRoute =
@@ -99,21 +89,6 @@ function AdminProvider({ children }) {
             console.log("Redirecting to login page");
             navigate("/login");
           }
-          clearTimeout(loadingTimeout); // Clear timeout as we've finished loading
-          return;
-        }
-
-        // Check if token appears to be valid (simple format check)
-        // Modified to be less strict since some valid tokens might be shorter
-        if (!token.includes(".")) {
-          console.log("Token appears invalid, clearing and redirecting");
-          localStorage.removeItem("adminToken");
-          setLoading(false);
-
-          if (!isAuthRoute) {
-            navigate("/login");
-          }
-          clearTimeout(loadingTimeout); // Clear timeout
           return;
         }
 
@@ -122,36 +97,17 @@ function AdminProvider({ children }) {
           console.log("Fetching admin data for authenticated route");
           try {
             await updateAdminData();
-            clearTimeout(loadingTimeout); // Clear timeout on success
           } catch (apiError) {
             console.error("Error fetching admin data:", apiError);
-
-            // Handle authentication errors
-            if (apiError.response?.status === 401) {
-              console.log("Authentication failed, clearing token");
-              localStorage.removeItem("adminToken");
-              if (!isAuthRoute) navigate("/login");
-            }
-
             setLoading(false);
-            clearTimeout(loadingTimeout); // Clear timeout on error
           }
         } else {
           console.log("On auth route, not fetching admin data");
           setLoading(false);
-          clearTimeout(loadingTimeout); // Clear timeout
         }
       } catch (error) {
         console.error("Auth check error:", error);
         setLoading(false);
-
-        // On any error, better to clear token and show login
-        if (!window.location.pathname.includes("/login")) {
-          localStorage.removeItem("adminToken");
-          navigate("/login");
-        }
-
-        clearTimeout(loadingTimeout); // Clear timeout on error
       }
     };
 

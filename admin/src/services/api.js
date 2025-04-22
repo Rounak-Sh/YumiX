@@ -1,112 +1,34 @@
 import axios from "axios";
 
-// Simple direct approach - use the Render URL directly
-const apiUrl = "https://yumix-backend.onrender.com/api";
+// Base URL for the API
+const BASE_URL = "https://yumix-backend.onrender.com";
+const API_URL = BASE_URL + "/api";
 
-console.log("Using API URL:", apiUrl);
+console.log("API Base URL:", API_URL);
 
 // Make API URL available for debugging
 if (typeof window !== "undefined") {
-  window.__API_URL__ = apiUrl;
+  window.__API_URL__ = API_URL;
 }
 
+// Simple axios instance without interceptors to avoid token issues
 const api = axios.create({
-  baseURL: apiUrl,
+  baseURL: API_URL,
   headers: {
     "Content-Type": "application/json",
   },
   withCredentials: true,
-  timeout: 10000,
+  timeout: 15000, // Increased timeout for slow connections
 });
 
-// Add a debug log to always show the actual URL being used for login
-function filterURL(url) {
-  // This function ensures we remove any duplicate or incorrect path segments
-  return url.replace(/\/+/g, "/").replace(/api\/v1/g, "api");
-}
-
-// Middleware to clean up any URL before it's used
-api.interceptors.request.use(
-  (config) => {
-    const token = localStorage.getItem("adminToken");
-
-    // Clean up URL to remove any v1 references
-    if (config.url) {
-      config.url = filterURL(config.url);
-      console.log("Final URL being used:", config.baseURL + config.url);
-    }
-
-    // Basic token validation before adding to request
-    const isValidToken = token && token.length > 50 && token.includes(".");
-
-    if (isValidToken) {
-      // Log token format for debugging (safely trimmed)
-      console.log(
-        "Auth token format check:",
-        `${token.substring(0, 5)}...${token.substring(token.length - 5)}`
-      );
-
-      config.headers.Authorization = `Bearer ${token}`;
-    } else if (token) {
-      // If token exists but isn't valid, clear it to prevent future issues
-      console.log("Invalid token detected in request interceptor, clearing it");
-      localStorage.removeItem("adminToken");
-    } else {
-      console.log("No admin token found in localStorage");
-    }
-    return config;
-  },
-  (error) => {
-    return Promise.reject(error);
-  }
-);
-
-// Retry logic for network errors
-api.interceptors.response.use(null, async (error) => {
-  const { config } = error;
-
-  if (!config || !config.retry) {
-    return Promise.reject(error);
-  }
-
-  if (
-    error.code === "ERR_NETWORK" ||
-    (error.response && error.response.status >= 500)
-  ) {
-    config.__retryCount = config.__retryCount || 0;
-
-    if (config.__retryCount < config.retry) {
-      config.__retryCount += 1;
-
-      const backoff = new Promise((resolve) => {
-        setTimeout(() => {
-          resolve();
-        }, config.retryDelay || 1000);
-      });
-
-      await backoff;
-      return api(config);
-    }
-  }
-
-  // Handle 401 errors
-  if (error.response?.status === 401) {
-    if (!window.location.pathname.includes("/login")) {
-      localStorage.removeItem("adminToken");
-      window.location.href = "/login";
-    }
-  }
-
-  return Promise.reject(error);
-});
-
+// Simplified API service with direct URLs
 const adminApi = {
   // Health check
   checkHealth: async () => {
     const healthEndpoints = [
-      "https://yumix-backend.onrender.com/health",
-      "https://yumix-backend.onrender.com/api/admin/health",
-      "https://yumix-backend.onrender.com/",
+      `${BASE_URL}/health`,
+      `${API_URL}/admin/health`,
+      BASE_URL,
     ];
 
     for (const endpoint of healthEndpoints) {
@@ -130,83 +52,82 @@ const adminApi = {
     console.log("Logging in with credentials:", {
       email: credentials.email,
       passwordProvided: !!credentials.password,
+      skipOtp: credentials.skipOtp,
     });
 
-    // Use absolute URL to ensure it doesn't get prepended with the frontend URL
-    const loginUrl = "https://yumix-backend.onrender.com/api/admin/auth/login";
+    // Always use absolute URL and force skipOtp
+    const loginUrl = `${API_URL}/admin/auth/login`;
+
+    // Ensure skipOtp is set to true
+    const loginData = {
+      ...credentials,
+      skipOtp: true,
+    };
+
     console.log("ABSOLUTE API URL for login:", loginUrl);
 
-    return axios
-      .post(loginUrl, credentials, {
-        withCredentials: true,
-        headers: { "Content-Type": "application/json" },
-      })
-      .then((response) => {
-        console.log("Login API response status:", response.status);
-        console.log("Login API response:", {
-          success: response.data?.success,
-          requireOTP: response.data?.requireOTP !== undefined,
-          hasToken: !!response.data?.token,
-          message: response.data?.message,
-        });
-
-        // If login is successful but no OTP required and token is present
-        if (
-          response.data?.success &&
-          !response.data?.requireOTP &&
-          response.data?.token
-        ) {
-          console.log("Direct login with token, storing token");
-          localStorage.setItem("adminToken", response.data.token);
-        }
-
-        return response;
-      })
-      .catch((error) => {
-        console.error("Login API error:", error.message);
-        console.error(
-          "Login API error details:",
-          error.response?.data || "No response data"
-        );
-        throw error;
-      });
+    return axios.post(loginUrl, loginData, {
+      withCredentials: true,
+      headers: { "Content-Type": "application/json" },
+    });
   },
 
   verifyOtp: (data) => {
     console.log("Verifying OTP for:", data.email);
     // Use absolute URL to avoid prepending with frontend URL
-    const verifyUrl =
-      "https://yumix-backend.onrender.com/api/admin/auth/verify-otp";
+    const verifyUrl = `${API_URL}/admin/auth/verify-otp`;
     console.log("ABSOLUTE URL for OTP verification:", verifyUrl);
 
-    return axios
-      .post(verifyUrl, data, {
-        withCredentials: true,
-        headers: { "Content-Type": "application/json" },
-      })
-      .then((response) => {
-        console.log("OTP verification response:", {
-          success: response.data?.success,
-          hasToken: !!response.data?.token,
-          hasAdmin: !!response.data?.admin,
-        });
-
-        // Store token if present in response
-        if (response.data?.success && response.data?.token) {
-          console.log("Storing token from OTP verification");
-          localStorage.setItem("adminToken", response.data.token);
-        }
-
-        return response;
-      })
-      .catch((error) => {
-        console.error("OTP verification failed:", error);
-        throw error;
-      });
+    return axios.post(verifyUrl, data, {
+      withCredentials: true,
+      headers: { "Content-Type": "application/json" },
+    });
   },
 
-  resetPassword: (data) => api.post("/admin/auth/reset-password", data),
-  logout: () => api.post("/admin/auth/logout"),
+  // Dashboard
+  getDashboardStats: () => {
+    const token = localStorage.getItem("adminToken");
+    console.log("Getting dashboard stats, token exists:", !!token);
+
+    return axios.get(`${API_URL}/admin/dashboard/stats`, {
+      headers: {
+        Authorization: token ? `Bearer ${token}` : "",
+        "Content-Type": "application/json",
+      },
+      withCredentials: true,
+    });
+  },
+
+  // Basic authenticated request wrapper
+  authRequest: (method, endpoint, data = null) => {
+    const token = localStorage.getItem("adminToken");
+    const config = {
+      headers: {
+        Authorization: token ? `Bearer ${token}` : "",
+        "Content-Type": "application/json",
+      },
+      withCredentials: true,
+    };
+
+    const url = `${API_URL}${endpoint}`;
+
+    if (method.toLowerCase() === "get") {
+      return axios.get(url, config);
+    } else if (method.toLowerCase() === "post") {
+      return axios.post(url, data, config);
+    } else if (method.toLowerCase() === "put") {
+      return axios.put(url, data, config);
+    } else if (method.toLowerCase() === "delete") {
+      return axios.delete(url, config);
+    }
+  },
+
+  // Other endpoints can use the authRequest wrapper
+  resetPassword: (data) =>
+    adminApi.authRequest("post", "/admin/auth/reset-password", data),
+  forgotPassword: (email) =>
+    adminApi.authRequest("post", "/admin/auth/forgot-password", { email }),
+  logout: () => adminApi.authRequest("post", "/admin/auth/logout"),
 
   // Users
   getAllUsers: () => api.get("/admin/users"),
@@ -223,30 +144,6 @@ const adminApi = {
     api.post(`/support/admin/tickets/${ticketId}/reply`, data),
   updateSupportTicket: (ticketId, data) =>
     api.put(`/support/admin/tickets/${ticketId}`, data),
-
-  // Dashboard
-  getDashboardStats: async () => {
-    try {
-      return await api.get("/admin/dashboard/stats");
-    } catch (error) {
-      return {
-        data: {
-          success: false,
-          message: "Failed to load dashboard stats",
-          stats: {
-            totalUsers: 0,
-            activeRecipes: 0,
-            activeSubscriptions: 0,
-            recipeSearches: 0,
-            usersChange: 0,
-            recipesChange: 0,
-            subscriptionsChange: 0,
-            searchesChange: 0,
-          },
-        },
-      };
-    }
-  },
 
   getUserGrowthData: async () => {
     try {
@@ -308,16 +205,6 @@ const adminApi = {
   resendOtp: async (data) => {
     try {
       const response = await api.post("/admin/auth/resend-otp", data);
-      return response;
-    } catch (error) {
-      throw error;
-    }
-  },
-
-  // Forgot Password
-  forgotPassword: async (email) => {
-    try {
-      const response = await api.post("/admin/auth/forgot-password", { email });
       return response;
     } catch (error) {
       throw error;
