@@ -52,36 +52,17 @@ export default function Login() {
   }, []);
 
   useEffect(() => {
-    // NEVER clear token on login page load - it is causing issues
+    // Simple token check to redirect if already logged in
     const storedToken = localStorage.getItem("adminToken");
 
-    console.log("Login page - checking token");
-    console.log("Token exists:", !!storedToken);
-
-    // If token exists, redirect to dashboard
     if (storedToken) {
-      console.log("Token exists, redirecting to dashboard");
       navigate("/dashboard", { replace: true });
     }
   }, [navigate]);
 
-  const handleInputChange = (e) => {
-    const { name, value } = e.target;
-    setFormData({ ...formData, [name]: value });
-  };
-
-  const togglePasswordVisibility = () => {
-    setShowPassword((prev) => !prev);
-  };
-
+  // Handle form submission
   const handleSubmit = async (e) => {
     e.preventDefault();
-
-    // Log API URL on login attempt
-    console.log(
-      "Attempting login with API URL:",
-      window.__API_URL__ || adminApi?.defaults?.baseURL || "Unknown"
-    );
 
     // Validation
     if (!formData.email || !formData.password) {
@@ -99,18 +80,12 @@ export default function Login() {
         return;
       }
 
-      // Always set skipOtp to true regardless of checkbox
+      // Always skip OTP for simplicity
       const loginData = {
         email: formData.email,
         password: formData.password,
-        skipOtp: true, // Force skipOtp to be true always
+        skipOtp: true, // Always skip OTP
       };
-
-      console.log("Submitting login with data:", {
-        email: loginData.email,
-        passwordProvided: !!loginData.password,
-        skipOtp: loginData.skipOtp,
-      });
 
       // Use the API service directly with axios to bypass any middleware issues
       const loginUrl =
@@ -120,63 +95,11 @@ export default function Login() {
         headers: { "Content-Type": "application/json" },
       });
 
-      console.log("Login response:", {
-        success: response?.data?.success,
-        requireOTP: response?.data?.requireOTP,
-        message: response?.data?.message,
-        hasToken: !!response?.data?.token,
-      });
-
       if (response?.data?.success) {
-        // Even if requireOTP is true, we'll bypass it
-        console.log("Login successful, proceeding with direct login");
-
         // Handle successful login with token
         if (response.data.token) {
-          console.log(
-            "Token received, logging token format:",
-            response.data.token.substring(0, 10) +
-              "..." +
-              response.data.token.substring(response.data.token.length - 10)
-          );
-
           // Store the token
           localStorage.setItem("adminToken", response.data.token);
-
-          // Verify token was stored
-          const storedToken = localStorage.getItem("adminToken");
-          console.log("Stored token check:", !!storedToken);
-
-          if (storedToken !== response.data.token) {
-            console.error("Token storage failed - mismatch!");
-          }
-
-          // Create a test request to verify the token works
-          try {
-            const testUrl =
-              "https://yumix-backend.onrender.com/api/admin/dashboard/stats";
-            console.log("Testing token with request to:", testUrl);
-
-            const testResponse = await axios.get(testUrl, {
-              headers: {
-                Authorization: `Bearer ${response.data.token}`,
-                "Content-Type": "application/json",
-              },
-              withCredentials: true,
-            });
-
-            console.log(
-              "Test request succeeded:",
-              testResponse.status,
-              !!testResponse.data
-            );
-          } catch (testError) {
-            console.error(
-              "Test request with token failed:",
-              testError.response?.status,
-              testError.message
-            );
-          }
 
           // Show success message and redirect
           showToast.success("Login successful");
@@ -203,6 +126,14 @@ export default function Login() {
     } finally {
       setLoading(false);
     }
+  };
+
+  const handleInputChange = (e) => {
+    setFormData({ ...formData, [e.target.name]: e.target.value });
+  };
+
+  const togglePasswordVisibility = () => {
+    setShowPassword(!showPassword);
   };
 
   const handleForgotPassword = async (e) => {
@@ -242,10 +173,6 @@ export default function Login() {
     } finally {
       setForgotPasswordLoading(false);
     }
-  };
-
-  const handleCheckboxChange = (e) => {
-    setFormData({ ...formData, skipOtp: e.target.checked });
   };
 
   return (
@@ -361,20 +288,6 @@ export default function Login() {
                 )}
               </div>
 
-              {/* Skip OTP Checkbox */}
-              <div className="flex items-center gap-2 mt-2">
-                <input
-                  type="checkbox"
-                  id="skipOtp"
-                  checked={formData.skipOtp}
-                  onChange={handleCheckboxChange}
-                  className="w-4 h-4"
-                />
-                <label htmlFor="skipOtp" className="text-sm text-gray-700">
-                  Skip OTP verification (for development)
-                </label>
-              </div>
-
               <div className="flex justify-center mt-6">
                 <button
                   type="submit"
@@ -410,7 +323,7 @@ export default function Login() {
         </div>
       </div>
 
-      {/* Admin Credentials Display */}
+      {/* Admin Credentials Display - Only show demo credentials */}
       <div className="absolute bottom-4 text-center w-full">
         <button
           onClick={() =>
@@ -428,22 +341,19 @@ export default function Login() {
               clipRule="evenodd"
             />
           </svg>
-          Admin Access
+          Demo Credentials
         </button>
         <div
           id="admin-creds"
           className="hidden mt-2 mx-auto max-w-xs bg-[#252525] border border-[#333333] rounded-lg p-3">
-          <p className="text-[#666666] text-xs">Admin Credentials:</p>
+          <p className="text-[#666666] text-xs">Demo Admin Credentials:</p>
           <div className="my-2">
             <p className="text-[#E0E0E0] text-sm">Email: admin@yumix.com</p>
             <p className="text-[#E0E0E0] text-sm">Password: admin123</p>
           </div>
-          <hr className="border-[#333333] my-2" />
-          <div className="mt-2">
-            <p className="text-[#666666] text-xs">Developer Credentials:</p>
-            <p className="text-[#E0E0E0] text-sm">Email: rounaq.sh@gmail.com</p>
-            <p className="text-[#E0E0E0] text-sm">Password: Admin@01</p>
-          </div>
+          <p className="text-[#666666] text-xs mt-2">
+            Note: These are demo credentials for testing purposes only.
+          </p>
         </div>
       </div>
     </div>

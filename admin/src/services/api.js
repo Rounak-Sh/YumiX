@@ -4,14 +4,12 @@ import axios from "axios";
 const BASE_URL = "https://yumix-backend.onrender.com";
 const API_URL = BASE_URL + "/api";
 
-console.log("API Base URL:", API_URL);
-
-// Make API URL available for debugging
+// Make API URL available globally
 if (typeof window !== "undefined") {
   window.__API_URL__ = API_URL;
 }
 
-// Simple axios instance without interceptors to avoid token issues
+// Simple axios instance without interceptors
 const api = axios.create({
   baseURL: API_URL,
   headers: {
@@ -33,28 +31,18 @@ const adminApi = {
 
     for (const endpoint of healthEndpoints) {
       try {
-        console.log(`Trying health endpoint: ${endpoint}`);
         const response = await axios.get(endpoint);
-        console.log(`Health check succeeded with endpoint: ${endpoint}`);
         return response;
       } catch (error) {
-        console.error(`Health check failed for ${endpoint}:`, error.message);
+        // Continue to next endpoint
       }
     }
 
-    // If all attempts failed
-    console.error("All health check attempts failed");
     throw new Error("Failed to connect to backend");
   },
 
   // Auth
   login: (credentials) => {
-    console.log("Logging in with credentials:", {
-      email: credentials.email,
-      passwordProvided: !!credentials.password,
-      skipOtp: credentials.skipOtp,
-    });
-
     // Always use absolute URL and force skipOtp
     const loginUrl = `${API_URL}/admin/auth/login`;
 
@@ -64,8 +52,6 @@ const adminApi = {
       skipOtp: true,
     };
 
-    console.log("ABSOLUTE API URL for login:", loginUrl);
-
     return axios.post(loginUrl, loginData, {
       withCredentials: true,
       headers: { "Content-Type": "application/json" },
@@ -73,10 +59,7 @@ const adminApi = {
   },
 
   verifyOtp: (data) => {
-    console.log("Verifying OTP for:", data.email);
-    // Use absolute URL to avoid prepending with frontend URL
     const verifyUrl = `${API_URL}/admin/auth/verify-otp`;
-    console.log("ABSOLUTE URL for OTP verification:", verifyUrl);
 
     return axios.post(verifyUrl, data, {
       withCredentials: true,
@@ -102,28 +85,13 @@ const adminApi = {
   authRequest: (method, endpoint, data = null, additionalConfig = {}) => {
     const token = localStorage.getItem("adminToken");
 
-    // Debug token
-    console.log(
-      "Token found for request:",
-      token ? `[exists: ${token.length} chars]` : "NO TOKEN"
-    );
-    if (token) {
-      console.log(
-        "Token preview:",
-        `${token.substring(0, 10)}...${token.substring(token.length - 10)}`
-      );
-    }
-
-    // Create headers with proper Authorization format
+    // Create headers with Authorization
     const headers = {
       "Content-Type": "application/json",
     };
 
     if (token) {
       headers.Authorization = `Bearer ${token}`;
-      console.log("Authorization header set correctly");
-    } else {
-      console.warn("No token available for request to:", endpoint);
     }
 
     const config = {
@@ -133,7 +101,6 @@ const adminApi = {
     };
 
     const url = `${API_URL}${endpoint}`;
-    console.log(`Making ${method.toUpperCase()} request to ${url}`);
 
     if (method.toLowerCase() === "get") {
       return axios.get(url, config);
