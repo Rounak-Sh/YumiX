@@ -1,23 +1,96 @@
-# YuMix - Recipe Management Application
+# YuMix - AI-Powered Recipe Management Platform
 
-YuMix is a full-stack application for managing and generating recipes, with AI capabilities, user subscriptions, and an admin dashboard.
+YuMix is a comprehensive recipe management platform that combines traditional recipe storage with AI-powered recipe generation, user subscriptions, and a robust admin dashboard.
 
-## Deployment Information
+![YuMix Logo](https://placeholder-for-your-logo.com)
+
+## 🚀 Live Deployments
+
+| Component       | Status     | URL                                                              |
+| --------------- | ---------- | ---------------------------------------------------------------- |
+| Backend API     | ✅ Live    | [yumix-backend.onrender.com](https://yumix-backend.onrender.com) |
+| Admin Dashboard | ✅ Live    | [yumix-admin.vercel.app](https://yumix-admin.vercel.app)         |
+| User Frontend   | ⏳ Pending | _Coming soon_                                                    |
+
+## ✨ Features
+
+### 👤 User Platform
+
+- **AI Recipe Generation** - Create custom recipes with AI assistance
+- **Recipe Search & Discovery** - Find recipes with advanced filtering
+- **User Profiles** - Save favorites and track recipe history
+- **Subscription Tiers** - Access premium features with subscription plans
+- **Support System** - Create and track support tickets
+
+### 👑 Admin Dashboard
+
+- **User Management** - View, edit, and manage user accounts
+- **Content Management** - Control recipes and featured content
+- **Subscription Management** - Manage subscription plans and subscribers
+- **Payment Tracking** - Monitor and manage payment transactions
+- **Support Handling** - Respond to user support tickets
+
+## 🛠️ Tech Stack
 
 ### Backend
 
-- Deployed on Render: [https://yumix-backend.onrender.com](https://yumix-backend.onrender.com)
-- Status: Running
+- Node.js & Express
+- MongoDB with Mongoose
+- Redis for caching
+- JWT & Clerk authentication
+- Razorpay payment processing
+- Google Gemini AI integration
+- Cloudinary for image storage
 
-### Admin Dashboard
+### Frontend & Admin
 
-- Deployed on Vercel: [https://yumix-admin.vercel.app](https://yumix-admin.vercel.app)
+- React 19
+- Tailwind CSS
+- Recoil for state management
+- React Router
+- Headless UI components
+- Material UI (Admin only)
+- Recharts for data visualization
 
-### User Frontend
+## 🏗️ Project Structure
 
-- Not yet deployed
+```
+YuMix/
+├── backend/             # Express API server
+│   ├── config/          # Configuration files
+│   ├── controllers/     # API logic
+│   ├── middleware/      # Custom middleware
+│   ├── models/          # Database models
+│   ├── routes/          # API endpoints
+│   ├── services/        # Business logic
+│   └── utils/           # Helper functions
+│
+├── frontend/            # User-facing React application
+│   ├── public/          # Static assets
+│   └── src/
+│       ├── assets/      # Images, icons, etc.
+│       ├── components/  # Reusable UI components
+│       ├── context/     # React context providers
+│       ├── hooks/       # Custom React hooks
+│       ├── layouts/     # Page layouts
+│       ├── pages/       # Page components
+│       ├── services/    # API service integrations
+│       └── utils/       # Helper functions
+│
+└── admin/               # Admin dashboard React application
+    ├── public/          # Static assets
+    └── src/
+        ├── assets/      # Images, icons, etc.
+        ├── components/  # Reusable UI components
+        ├── contexts/    # React context providers
+        ├── hooks/       # Custom React hooks
+        ├── layouts/     # Page layouts
+        ├── pages/       # Page components
+        ├── services/    # API service integrations
+        └── utils/       # Helper functions
+```
 
-## Local Development Setup
+## 🚀 Getting Started
 
 ### Prerequisites
 
@@ -25,69 +98,93 @@ YuMix is a full-stack application for managing and generating recipes, with AI c
 - MongoDB
 - Redis (optional, for caching)
 
-### Installation
+### Installation & Setup
 
-1. Clone the repository
+1. **Clone the repository**
 
-```bash
-git clone https://github.com/Rounak-Sh/YumiX.git
-cd YumiX
-```
+   ```bash
+   git clone https://github.com/Rounak-Sh/YumiX.git
+   cd YumiX
+   ```
 
-2. Setup Backend
+2. **Set up the backend**
 
-```bash
-cd backend
-npm install
-# Copy .env.example to .env and configure your variables
-cp .env.example .env
-npm run dev
-```
+   ```bash
+   cd backend
+   npm install
 
-3. Setup Admin Dashboard
+   # Configure environment variables
+   cp .env.example .env
 
-```bash
-cd admin
-npm install
-# Copy .env.example to .env and configure your variables
-npm run dev
-```
+   # Start the development server
+   npm run server
+   ```
 
-4. Setup User Frontend
+3. **Set up the admin dashboard**
 
-```bash
-cd frontend
-npm install
-# Copy .env.example to .env and configure your variables
-npm run dev
-```
+   ```bash
+   cd admin
+   npm install
 
-## Deployment Notes
+   # Configure environment variables
+   cp .env.example .env
 
-### Backend (Render)
+   # Start the development server
+   npm run dev
+   ```
 
-- Environment variables must be set in Render dashboard
-- Make sure to include all variables from .env.example
+4. **Set up the frontend**
 
-### Frontend/Admin (Vercel)
+   ```bash
+   cd frontend
+   npm install
 
-- Add environment variables in Vercel Project Settings
-- The vercel.json configuration handles SPA routing
+   # Configure environment variables
+   cp .env.example .env
 
-## Tech Stack
+   # Start the development server
+   npm run dev
+   ```
 
-- Backend: Node.js, Express, MongoDB
-- Frontend: React, Vite, TailwindCSS
-- Admin: React, Vite, TailwindCSS
-- Deployment: Render (Backend), Vercel (Frontend/Admin)
+## 📝 Environment Variables
 
-## API Documentation
+Each component (backend, frontend, admin) requires its own set of environment variables. Check the `.env.example` files in each directory for the required variables.
 
-Base URL: https://yumix-backend.onrender.com/api
+Key environment variables include:
 
-### Main Endpoints
+- MongoDB connection string
+- JWT secret key
+- API keys for third-party services (Cloudinary, Razorpay, Google AI)
+- CORS origins for frontend/admin URLs
+
+## 🧪 API Documentation
+
+### Base URL
+
+- Development: `http://localhost:5000/api`
+- Production: `https://yumix-backend.onrender.com/api`
+
+### Key Endpoints
 
 - `/auth` - Authentication routes
 - `/recipes` - Recipe management
+- `/user` - User profile operations
+- `/subscriptions` - Subscription management
+- `/support` - Support ticket system
 - `/admin` - Admin operations (protected)
-- `/health` - Health check endpoint
+
+## 👥 Contributing
+
+1. Fork the repository
+2. Create your feature branch (`git checkout -b feature/amazing-feature`)
+3. Commit your changes (`git commit -m 'Add some amazing feature'`)
+4. Push to the branch (`git push origin feature/amazing-feature`)
+5. Open a Pull Request
+
+## 🙏 Acknowledgments
+
+- [React](https://reactjs.org/)
+- [Express](https://expressjs.com/)
+- [MongoDB](https://www.mongodb.com/)
+- [Tailwind CSS](https://tailwindcss.com/)
+- [Google Gemini](https://ai.google.dev/docs/gemini_api_overview)
