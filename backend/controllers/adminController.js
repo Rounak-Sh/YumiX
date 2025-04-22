@@ -33,150 +33,112 @@ const adminController = {
     try {
       const { email, password } = req.body;
 
-      // Debug log to see what's being received
-      console.log("\n=== Login Attempt ===");
-      console.log("Email:", email);
-
-      // First check if this email belongs to a user
-      const user = await User.findOne({ email });
-      if (user) {
-        console.log("Email belongs to user account");
-        return res.status(403).json({
+      // Input validation
+      if (!email || !password) {
+        return res.status(400).json({
           success: false,
-          message:
-            "This email is registered for user login. Please use the user login page.",
+          message: "Please provide email and password",
         });
       }
 
       // Find admin by email
       const admin = await Admin.findOne({ email });
-      console.log("\nAdmin Account Status:");
-      console.log("Found:", !!admin);
-      console.log(
-        "Login Attempts:",
-        JSON.stringify(admin?.loginAttempts, null, 2)
-      );
-      console.log("Current Time:", new Date().toISOString());
-
       if (!admin) {
-        return res.status(404).json({
-          success: false,
-          message: "Admin account not found",
-        });
-      }
-
-      // Verify password
-      const isPasswordValid = await bcrypt.compare(password, admin.password);
-      if (!isPasswordValid) {
-        console.log("\nInvalid password attempt");
-
-        // Increment attempt count
-        admin.loginAttempts.count += 1;
-        admin.loginAttempts.lastAttempt = new Date();
-
-        if (admin.loginAttempts.count >= 5) {
-          admin.loginAttempts.blockedUntil = new Date(
-            Date.now() + 15 * 60 * 1000
-          );
-          console.log(
-            "\nAccount blocked:",
-            JSON.stringify(admin.loginAttempts, null, 2)
-          );
-
-          // Send email notification for account block
-          await transporter.sendMail({
-            from: process.env.EMAIL_USER,
-            to: admin.email,
-            subject: "YuMix Admin - Account Security Alert",
-            html: `
-              <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
-                <h2>Security Alert</h2>
-                <p>Multiple failed login attempts detected on your YuMix admin account.</p>
-                <p>Your account has been temporarily blocked for 15 minutes.</p>
-                <p>If this wasn't you, please change your password immediately.</p>
-                <p>Time: ${new Date().toLocaleString()}</p>
-                <p>IP: ${req.ip}</p>
-              </div>
-            `,
-          });
-        } else if (admin.loginAttempts.count >= 3) {
-          // Send warning email after 3 failed attempts
-          await transporter.sendMail({
-            from: process.env.EMAIL_USER,
-            to: admin.email,
-            subject: "YuMix Admin - Login Security Warning",
-            html: `
-              <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
-                <h2>Security Warning</h2>
-                <p>Multiple failed login attempts detected on your YuMix admin account.</p>
-                <p>Failed Attempts: ${admin.loginAttempts.count}</p>
-                <p>Time: ${new Date().toLocaleString()}</p>
-                <p>IP: ${req.ip}</p>
-                <p>If this wasn't you, please change your password.</p>
-              </div>
-            `,
-          });
-        }
-
-        await admin.save();
-
-        if (admin.loginAttempts.blockedUntil) {
-          return res.status(403).json({
-            success: false,
-            message:
-              "Too many failed attempts. Account blocked for 15 minutes.",
-          });
-        }
-
         return res.status(401).json({
           success: false,
-          message: `Invalid password. ${
-            5 - admin.loginAttempts.count
-          } attempts remaining.`,
+          message: "Invalid credentials",
         });
       }
 
-      // Reset login attempts on successful login
-      admin.loginAttempts = {
-        count: 0,
-        lastAttempt: null,
-        blockedUntil: null,
-      };
-      await admin.save();
+      // Check if admin is blocked
+      if (
+        admin.loginAttempts &&
+        admin.loginAttempts.blockedUntil &&
+        admin.loginAttempts.blockedUntil > new Date()
+      ) {
+        const minutesLeft = Math.ceil(
+          (admin.loginAttempts.blockedUntil - new Date()) / (1000 * 60)
+        );
+        return res.status(429).json({
+          success: false,
+          message: `Too many failed login attempts. Please try again in ${minutesLeft} minutes.`,
+        });
+      }
 
-      console.log("\nPassword verified successfully");
+      // Check if password matches
+      const isMatch = await admin.matchPassword(password);
+      if (!isMatch) {
+        await admin.incrementLoginAttempts();
+        return res.status(401).json({
+          success: false,
+          message: "Invalid credentials",
+        });
+      }
 
+      // Reset login attempts on successful password match
+      await admin.resetLoginAttempts();
+
+      // BYPASS OTP FOR DEMO USER
+      // If this is the demo user, skip OTP verification
+      if (email === "demo@yumix.com") {
+        // Generate token
+        const token = jwt.sign({ id: admin._id }, process.env.JWT_SECRET, {
+          expiresIn: process.env.JWT_EXPIRE || "2h",
+        });
+
+        console.log("Demo user login - bypassing OTP verification");
+
+        // Return success with token
+        return res.status(200).json({
+          success: true,
+          token,
+          message: "Login successful",
+        });
+      }
+
+      // For regular users, continue with OTP verification
       // Generate OTP
       const otp = Math.floor(100000 + Math.random() * 900000).toString();
 
-      // Save OTP to admin document
-      admin.otp = otp;
-      admin.otpExpiry = new Date(Date.now() + 5 * 60 * 1000); // 5 minutes
-      await admin.save();
-
-      // Send OTP email
-      await transporter.sendMail({
-        from: process.env.EMAIL_USER,
-        to: email,
-        subject: "YuMix Admin Login OTP",
-        html: `
-          <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
-            <h2>YuMix Admin Login Verification</h2>
-            <p>Your OTP for admin login is: <strong>${otp}</strong></p>
-            <p>This OTP will expire in 5 minutes.</p>
-            <p>If you didn't request this OTP, please ignore this email.</p>
-          </div>
-        `,
+      // Store OTP in Redis with 5 minutes expiry
+      await redisClient.set(`adminOTP:${admin._id}`, otp, {
+        EX: 300, // 5 minutes
       });
 
-      res.status(200).json({
+      // Send OTP via email
+      try {
+        await transporter.sendMail({
+          from: process.env.EMAIL_USER,
+          to: admin.email,
+          subject: "YuMix Admin - Login OTP",
+          html: `
+            <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
+              <h2>YuMix Admin Login OTP</h2>
+              <p>Your OTP for login is: <strong>${otp}</strong></p>
+              <p>This OTP will expire in 5 minutes.</p>
+              <p>If you didn't request this OTP, please secure your account immediately.</p>
+            </div>
+          `,
+        });
+
+        console.log(`OTP sent to ${admin.email}`);
+      } catch (emailError) {
+        console.error("Error sending OTP email:", emailError);
+        return res.status(500).json({
+          success: false,
+          message: "Failed to send OTP email",
+        });
+      }
+
+      // Return success with requireOTP flag
+      return res.status(200).json({
         success: true,
-        message: "OTP sent successfully",
         requireOTP: true,
+        message: "OTP sent to your email",
       });
     } catch (error) {
       console.error("Login error:", error);
-      res.status(500).json({
+      return res.status(500).json({
         success: false,
         message: "Login failed",
         error: error.message,

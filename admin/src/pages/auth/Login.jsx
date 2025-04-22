@@ -258,6 +258,18 @@ export default function Login() {
                 </button>
               </div>
 
+              {/* Add Demo Login Hint */}
+              <div className="p-3 bg-[#2A2A2A] rounded-md mt-2 text-sm border border-[#333333]">
+                <p className="text-[#E0E0E0]">
+                  <span className="font-bold">Demo Access:</span> Use these
+                  credentials to explore the admin dashboard
+                </p>
+                <div className="flex flex-col mt-1 text-[#999999]">
+                  <code>Email: demo@yumix.com</code>
+                  <code>Password: demo123</code>
+                </div>
+              </div>
+
               <div className="flex justify-end relative">
                 {!forgotPasswordLoading && (
                   <button
