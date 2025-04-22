@@ -187,13 +187,8 @@ const adminController = {
     try {
       const { email, otp } = req.body;
 
-      console.log("\n=== OTP Verification Attempt ===");
-      console.log("Email:", email);
-      console.log("OTP Provided:", otp);
-
       const admin = await Admin.findOne({ email });
       if (!admin) {
-        console.log("Admin not found for email:", email);
         return res.status(404).json({
           success: false,
           message: "Admin not found",
